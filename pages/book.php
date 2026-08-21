@@ -157,7 +157,7 @@ include ROOT_PATH . '/includes/header.php';
                     </div>
                 </div>
 
-                <div class="mt-4 p-4 bg-white rounded-4 shadow" data-aos="fade-left" data-aos-delay="100">
+                <div class="mt-4 p-4 surface-card rounded-4 shadow" data-aos="fade-left" data-aos-delay="100">
                     <h6><i class="bi bi-calendar3"></i> Live Availability</h6>
                     <div id="availabilityCalendar" class="availability-calendar mt-3"></div>
                     <small class="text-muted d-block mt-2"><span class="cal-day available d-inline-block" style="width:20px;height:20px;"></span> Available &nbsp;

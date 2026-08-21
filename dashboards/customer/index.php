@@ -82,6 +82,7 @@ $upcomingEvents = (int) $upcomingStmt->fetchColumn();
 $recentBookings = array_slice($bookings, 0, 5);
 $depositPercent = (float) ($config['booking_deposit_percent'] ?? 0.30);
 $loyaltyPer100 = (int) ($config['loyalty_points_per_100'] ?? 10);
+$custUnread = getUnreadNotificationCount($pdo, $userId);
 
 $quoteStatusBadge = static function (string $status): string {
     $map = [
@@ -99,65 +100,95 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
 ?>
 
 <!-- Overview -->
-<section class="dashboard-section" id="overview">
-    <div class="kpi-grid mb-4">
+<section class="dash-page dashboard-section" id="overview">
+    <?= renderDashboardWelcome(
+        'Welcome back, ' . $user['first_name'],
+        'Manage your bookings, payments, and loyalty rewards in one place.',
+        [
+            ['url' => url('book'), 'label' => 'Book an Event', 'icon' => 'plus-lg', 'class' => 'btn-accent'],
+            ['url' => '#bookings', 'label' => 'My Bookings', 'icon' => 'calendar-check'],
+            ['url' => '#payments', 'label' => 'Payments', 'icon' => 'credit-card'],
+            ['url' => '#loyalty', 'label' => 'Loyalty', 'icon' => 'gift'],
+        ],
+        $custUnread
+    ) ?>
+
+    <?= renderDashSectionHeading('Your summary', 'Account overview at a glance') ?>
+    <div class="dash-stats-primary">
         <?= renderKpiCard('Total Bookings', (string) $totalBookings, 'calendar-check', 'primary', null, url('dashboard/customer') . '#bookings', 'View bookings') ?>
-        <?= renderKpiCard('Loyalty Points', (string) $loyaltyPoints, 'gift', 'accent', null, url('dashboard/customer') . '#loyalty', 'Rewards info') ?>
+        <?= renderKpiCard('Loyalty Points', (string) $loyaltyPoints, 'gift', 'accent', $loyaltyPer100 . ' pts per £100 spent', url('dashboard/customer') . '#loyalty', 'Rewards info') ?>
         <?= renderKpiCard('Pending Payments', (string) $pendingPayments, 'exclamation-circle', 'warning', null, url('dashboard/customer') . '#payments', 'Payment history') ?>
         <?= renderKpiCard('Upcoming Events', (string) $upcomingEvents, 'calendar-event', 'info', null, url('dashboard/customer') . '#bookings', 'See schedule') ?>
     </div>
 
-    <div class="panel-card mb-4">
-        <div class="panel-header d-flex justify-content-between align-items-center flex-wrap gap-2">
-            <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Recent Bookings</h5>
-            <div class="d-flex gap-2">
-                <a href="<?= e(url('book')) ?>" class="btn btn-sm btn-accent"><i class="bi bi-plus-lg"></i> Book an Event</a>
-                <a href="#bookings" class="btn btn-sm btn-outline-secondary">View all</a>
+    <?= renderDashSectionHeading('Recent activity', 'Your latest bookings and account updates') ?>
+    <div class="dash-activity-grid">
+        <div class="panel-card dash-activity-main">
+            <div class="panel-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h5 class="mb-0"><i class="bi bi-calendar-check"></i> Recent Bookings</h5>
+                <div class="d-flex gap-2">
+                    <a href="<?= e(url('book')) ?>" class="btn btn-sm btn-accent"><i class="bi bi-plus-lg"></i> Book an Event</a>
+                    <a href="#bookings" class="btn btn-sm btn-outline-secondary">View all</a>
+                </div>
+            </div>
+            <div class="panel-body p-0">
+                <?php if (empty($recentBookings)): ?>
+                    <?= renderEmptyState('calendar-x', 'No bookings yet', 'Plan your next event with Splendid Catering.', url('book'), 'Book Now') ?>
+                <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table data-table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Reference</th>
+                                <th>Event</th>
+                                <th>Date</th>
+                                <th>Guests</th>
+                                <th>Total</th>
+                                <th>Status</th>
+                                <th>Payment</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($recentBookings as $b): ?>
+                            <tr>
+                                <td><strong><?= e($b['reference_no']) ?></strong></td>
+                                <td>
+                                    <?= e($b['service_name'] ?? $b['event_type'] ?? 'Event') ?>
+                                    <?php if (!empty($b['package_name'])): ?>
+                                        <br><small class="text-muted"><?= e($b['package_name']) ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <?= e(date('M j, Y', strtotime($b['event_date']))) ?>
+                                    <?php if (!empty($b['event_time'])): ?>
+                                        <br><small class="text-muted"><?= e(substr((string) $b['event_time'], 0, 5)) ?></small>
+                                    <?php endif; ?>
+                                </td>
+                                <td><?= (int) $b['guest_count'] ?></td>
+                                <td><?= formatMoney((float) $b['total_amount']) ?></td>
+                                <td><?= orderStatusBadge($b['status']) ?></td>
+                                <td><?= paymentStatusBadge($b['payment_status']) ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
             </div>
         </div>
-        <div class="panel-body p-0">
-            <?php if (empty($recentBookings)): ?>
-                <?= renderEmptyState('calendar-x', 'No bookings yet', 'Plan your next event with Splendid Catering.', url('book'), 'Book Now') ?>
-            <?php else: ?>
-            <div class="table-responsive">
-                <table class="table data-table table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>Reference</th>
-                            <th>Event</th>
-                            <th>Date</th>
-                            <th>Guests</th>
-                            <th>Total</th>
-                            <th>Status</th>
-                            <th>Payment</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                    <?php foreach ($recentBookings as $b): ?>
-                        <tr>
-                            <td><strong><?= e($b['reference_no']) ?></strong></td>
-                            <td>
-                                <?= e($b['service_name'] ?? $b['event_type'] ?? 'Event') ?>
-                                <?php if (!empty($b['package_name'])): ?>
-                                    <br><small class="text-muted"><?= e($b['package_name']) ?></small>
-                                <?php endif; ?>
-                            </td>
-                            <td>
-                                <?= e(date('M j, Y', strtotime($b['event_date']))) ?>
-                                <?php if (!empty($b['event_time'])): ?>
-                                    <br><small class="text-muted"><?= e(substr((string) $b['event_time'], 0, 5)) ?></small>
-                                <?php endif; ?>
-                            </td>
-                            <td><?= (int) $b['guest_count'] ?></td>
-                            <td><?= formatMoney((float) $b['total_amount']) ?></td>
-                            <td><?= orderStatusBadge($b['status']) ?></td>
-                            <td><?= paymentStatusBadge($b['payment_status']) ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    </tbody>
-                </table>
+
+        <div class="dash-activity-side">
+            <div class="panel-card">
+                <div class="panel-header">
+                    <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Actions</h5>
+                </div>
+                <div class="panel-body d-grid gap-2">
+                    <a href="<?= e(url('book')) ?>" class="btn btn-accent"><i class="bi bi-plus-lg"></i> Book an Event</a>
+                    <a href="#quotes" class="btn btn-outline-secondary"><i class="bi bi-file-earmark-text"></i> View Quotations</a>
+                    <a href="#reviews" class="btn btn-outline-secondary"><i class="bi bi-star"></i> Leave a Review</a>
+                    <a href="<?= e(url('contact')) ?>" class="btn btn-outline-secondary"><i class="bi bi-chat-dots"></i> Contact Support</a>
+                </div>
             </div>
-            <?php endif; ?>
         </div>
     </div>
 </section>

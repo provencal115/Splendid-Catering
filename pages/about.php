@@ -34,7 +34,7 @@ include ROOT_PATH . '/includes/header.php';
     </div>
 </section>
 
-<section class="section bg-white">
+<section class="section section-alt">
     <div class="container">
         <div class="section-header" data-aos="fade-up">
             <span class="section-label">Our Values</span>

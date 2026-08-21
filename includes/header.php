@@ -5,7 +5,7 @@ $bodyClass = $bodyClass ?? '';
 $isDashboard = $isDashboard ?? false;
 ?>
 <!DOCTYPE html>
-<html lang="en" data-theme="light">
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -48,7 +48,10 @@ $isDashboard = $isDashboard ?? false;
                 <li class="nav-item"><a class="nav-link" href="<?= url('contact') ?>">Contact</a></li>
             </ul>
             <div class="d-flex align-items-center gap-2">
-                <button type="button" class="btn btn-outline-light btn-sm theme-toggle-public" id="themeTogglePublic" aria-label="Toggle theme"><i class="bi bi-moon-stars"></i></button>
+                <button type="button" class="btn btn-outline-light btn-sm theme-toggle-public" id="themeTogglePublic" aria-label="Toggle theme">
+                    <i class="bi bi-sun-fill theme-icon-light"></i>
+                    <i class="bi bi-moon-stars-fill theme-icon-dark"></i>
+                </button>
                 <?php if (isLoggedIn()): ?>
                     <a href="<?= roleDashboardUrl(currentUser()['role']) ?>" class="btn btn-outline-light btn-sm"><i class="bi bi-speedometer2"></i> Dashboard</a>
                     <a href="<?= url('auth/logout') ?>" class="btn btn-gold btn-sm">Logout</a>

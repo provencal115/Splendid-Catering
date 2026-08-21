@@ -35,7 +35,7 @@ include ROOT_PATH . '/includes/header.php';
                 </ul>
             </div>
             <div class="col-lg-7" data-aos="fade-left">
-                <div class="bg-white rounded-4 shadow p-4 p-lg-5">
+                <div class="surface-card rounded-4 shadow p-4 p-lg-5">
                     <form method="POST">
                         <?= csrfField() ?>
                         <div class="row g-3">

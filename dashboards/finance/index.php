@@ -39,6 +39,7 @@ $refunds = $pdo->query('
 $pendingPayments = array_values(array_filter($payments, fn($p) => $p['status'] === 'pending'));
 
 $notifications = getUserNotifications($pdo, $userId, 30);
+$financeUnread = getUnreadNotificationCount($pdo, $userId);
 
 $revenueChart = [];
 for ($i = 6; $i >= 0; $i--) {
@@ -63,50 +64,66 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
 ?>
 
 <!-- Overview -->
-<section class="dashboard-section" id="overview">
-    <div class="kpi-grid mb-4">
+<section class="dash-page dashboard-section" id="overview">
+    <?= renderDashboardWelcome(
+        'Welcome back, ' . $user['first_name'],
+        'Track revenue, payments, invoices, and financial operations.',
+        [
+            ['url' => '#payments', 'label' => 'Review Payments', 'icon' => 'credit-card', 'class' => 'btn-accent'],
+            ['url' => '#invoices', 'label' => 'Invoices', 'icon' => 'receipt'],
+            ['url' => '#reports', 'label' => 'Reports', 'icon' => 'bar-chart-line'],
+        ],
+        $financeUnread
+    ) ?>
+
+    <?= renderDashSectionHeading('Financial summary', 'Revenue and payment metrics') ?>
+    <div class="dash-stats-primary">
         <?= renderKpiCard("Today's Revenue", formatMoney($dailyRevenue), 'cash-coin', 'success') ?>
         <?= renderKpiCard('Monthly Revenue', formatMoney($monthlyRevenue), 'graph-up-arrow', 'primary') ?>
         <?= renderKpiCard('Yearly Revenue', formatMoney($yearlyRevenue), 'cash-stack', 'info') ?>
         <?= renderKpiCard('Outstanding', formatMoney($outstanding), 'exclamation-circle', 'danger', null, '#payments', 'View payments') ?>
+    </div>
+    <div class="dash-stats-secondary">
         <?= renderKpiCard('Pending Verification', (string) $pendingVerification, 'hourglass-split', 'warning', null, '#payments', 'Review') ?>
         <?= renderKpiCard('Total Refunded', formatMoney($refundedTotal), 'arrow-return-left', 'secondary', null, '#refunds', 'View refunds') ?>
     </div>
 
-    <div class="row g-4">
-        <div class="col-lg-8">
-            <div class="panel-card h-100">
-                <div class="panel-header">
-                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> Revenue — Last 7 Days</h5>
-                </div>
-                <div class="panel-body">
-                    <canvas id="financeRevenueChart" height="120" aria-label="Revenue chart last 7 days"></canvas>
-                </div>
+    <?= renderDashSectionHeading('Analytics', 'Revenue trends and pending actions') ?>
+    <div class="dash-activity-grid">
+        <div class="panel-card dash-activity-main">
+            <div class="panel-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Revenue — Last 7 Days</h5>
+            </div>
+            <div class="panel-body dash-chart-body">
+                <canvas id="financeRevenueChart" height="120" aria-label="Revenue chart last 7 days"></canvas>
             </div>
         </div>
-        <div class="col-lg-4">
-            <div class="panel-card h-100">
-                <div class="panel-header">
-                    <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Pending Verification</h5>
-                </div>
-                <div class="panel-body">
-                    <?php if (empty($pendingPayments)): ?>
-                        <?= renderEmptyState('check-circle', 'All clear', 'No payments awaiting verification.') ?>
-                    <?php else: ?>
-                        <?php foreach (array_slice($pendingPayments, 0, 5) as $pp): ?>
-                        <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
-                            <div>
-                                <strong class="small"><?= e($pp['booking_ref']) ?></strong>
-                                <div class="text-muted small"><?= formatMoney((float) $pp['amount']) ?></div>
+        <div class="panel-card">
+            <div class="panel-header">
+                <h5 class="mb-0"><i class="bi bi-exclamation-circle"></i> Pending Verification</h5>
+            </div>
+            <div class="panel-body">
+                <?php if (empty($pendingPayments)): ?>
+                    <?= renderEmptyState('check-circle', 'All clear', 'No payments awaiting verification.') ?>
+                <?php else: ?>
+                    <div class="activity-feed">
+                    <?php foreach (array_slice($pendingPayments, 0, 5) as $pp): ?>
+                        <article class="activity-item">
+                            <div class="activity-item-icon"><i class="bi bi-credit-card"></i></div>
+                            <div class="activity-item-body">
+                                <div class="activity-item-head">
+                                    <strong><?= e($pp['booking_ref']) ?></strong>
+                                    <button type="button" class="btn btn-sm btn-success" onclick="verifyPayment(<?= (int) $pp['id'] ?>)">Verify</button>
+                                </div>
+                                <p class="activity-item-meta"><?= formatMoney((float) $pp['amount']) ?></p>
                             </div>
-                            <button type="button" class="btn btn-sm btn-success" onclick="verifyPayment(<?= (int) $pp['id'] ?>)">Verify</button>
-                        </div>
-                        <?php endforeach; ?>
-                        <?php if (count($pendingPayments) > 5): ?>
-                        <a href="#payments" class="small">View all <?= count($pendingPayments) ?> pending payments</a>
-                        <?php endif; ?>
+                        </article>
+                    <?php endforeach; ?>
+                    </div>
+                    <?php if (count($pendingPayments) > 5): ?>
+                    <a href="#payments" class="dash-section-link mt-2 d-inline-flex">View all <?= count($pendingPayments) ?> pending payments <i class="bi bi-arrow-right"></i></a>
                     <?php endif; ?>
-                </div>
+                <?php endif; ?>
             </div>
         </div>
     </div>
@@ -372,8 +389,12 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
         const reportsEl = document.getElementById('financeReportsChart');
         if (typeof Chart === 'undefined') return;
 
-        const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--cream-dark').trim() || '#e9ecef';
-        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-light').trim() || '#6c757d';
+        if (window.__financeOverviewChart) window.__financeOverviewChart.destroy();
+        if (window.__financeReportsChart) window.__financeReportsChart.destroy();
+
+        const root = getComputedStyle(document.documentElement);
+        const gridColor = root.getPropertyValue('--border-color').trim() || '#e2e8f0';
+        const textColor = root.getPropertyValue('--text-muted').trim() || '#718096';
         const chartConfig = {
             type: 'line',
             data: {
@@ -391,7 +412,7 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
             },
             options: {
                 responsive: true,
-                maintainAspectRatio: true,
+                maintainAspectRatio: false,
                 plugins: { legend: { display: false } },
                 scales: {
                     x: { grid: { color: gridColor }, ticks: { color: textColor } },
@@ -400,8 +421,8 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
             }
         };
 
-        if (overviewEl) new Chart(overviewEl, chartConfig);
-        if (reportsEl) new Chart(reportsEl, JSON.parse(JSON.stringify(chartConfig)));
+        if (overviewEl) window.__financeOverviewChart = new Chart(overviewEl, chartConfig);
+        if (reportsEl) window.__financeReportsChart = new Chart(reportsEl, JSON.parse(JSON.stringify(chartConfig)));
     }
 
     async function verifyPayment(id) {
@@ -442,10 +463,13 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
     window.processRefund = processRefund;
     window.exportReport = exportReport;
 
+    window.refreshDashboardCharts = initFinanceCharts;
+
     document.addEventListener('DOMContentLoaded', () => {
         initFinanceCharts();
         highlightSidebarSection();
     });
+    document.addEventListener('themechange', initFinanceCharts);
     window.addEventListener('hashchange', highlightSidebarSection);
 })();
 </script>

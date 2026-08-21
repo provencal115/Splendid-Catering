@@ -70,7 +70,7 @@ include ROOT_PATH . '/includes/header.php';
     </div>
 </section>
 
-<section class="section bg-white">
+<section class="section section-alt">
     <div class="container">
         <div class="ai-panel" data-aos="fade-up">
             <h4><i class="bi bi-robot"></i> AI Menu Recommendation</h4>

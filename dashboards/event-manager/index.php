@@ -91,20 +91,36 @@ $completedCount = count(array_filter($events, fn($e) => $e['status'] === 'comple
 $totalChecklistItems = count($allChecklists);
 $completedChecklistItems = count(array_filter($allChecklists, fn($c) => (int) $c['is_completed'] === 1));
 $checklistProgress = $totalChecklistItems > 0 ? round(($completedChecklistItems / $totalChecklistItems) * 100) : 0;
+$eventUnread = getUnreadNotificationCount($pdo, $userId);
 
 include ROOT_PATH . '/includes/dashboard-layout.php';
 ?>
 
 <!-- Overview -->
-<section class="dashboard-section" id="overview">
-    <div class="kpi-grid mb-4">
+<section class="dash-page dashboard-section" id="overview">
+    <?= renderDashboardWelcome(
+        'Welcome back, ' . $user['first_name'],
+        'Manage assigned events, checklists, and staff coordination.',
+        [
+            ['url' => '#checklists', 'label' => 'Checklists', 'icon' => 'list-check', 'class' => 'btn-accent'],
+            ['url' => '#calendar', 'label' => 'Calendar', 'icon' => 'calendar3'],
+            ['url' => '#staff', 'label' => 'Staff', 'icon' => 'people'],
+        ],
+        $eventUnread
+    ) ?>
+
+    <?= renderDashSectionHeading('Event summary', 'Your assigned events at a glance') ?>
+    <div class="dash-stats-primary">
         <?= renderKpiCard('Assigned Events', (string) count($events), 'calendar-week', 'primary', null, '#checklists', 'View checklists') ?>
         <?= renderKpiCard('Upcoming', (string) $upcomingCount, 'calendar-event', 'info') ?>
         <?= renderKpiCard('In Progress', (string) $inProgressCount, 'hourglass-split', 'warning') ?>
         <?= renderKpiCard('Completed', (string) $completedCount, 'check-circle', 'success') ?>
+    </div>
+    <div class="dash-stats-secondary">
         <?= renderKpiCard('Checklist Progress', $checklistProgress . '%', 'list-check', 'accent', $completedChecklistItems . ' of ' . $totalChecklistItems . ' done') ?>
     </div>
 
+    <?= renderDashSectionHeading('My events', 'Events assigned to you') ?>
     <div class="panel-card">
         <div class="panel-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="bi bi-calendar-week"></i> My Events</h5>

@@ -38,6 +38,7 @@ $inventory = $pdo->query('
 ')->fetchAll();
 
 $notifications = getUserNotifications($pdo, $userId, 30);
+$kitchenUnread = getUnreadNotificationCount($pdo, $userId);
 
 $pendingCount = count(array_filter($orders, fn($o) => $o['status'] === 'pending'));
 $preparingCount = count(array_filter($orders, fn($o) => $o['status'] === 'preparing'));
@@ -65,14 +66,27 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
 ?>
 
 <!-- Overview -->
-<section class="dashboard-section" id="overview">
-    <div class="kpi-grid mb-4">
+<section class="dash-page dashboard-section" id="overview">
+    <?= renderDashboardWelcome(
+        'Welcome back, ' . $user['first_name'],
+        'Monitor production orders, prep schedules, and inventory levels.',
+        [
+            ['url' => '#schedule', 'label' => 'Prep Schedule', 'icon' => 'clock-history', 'class' => 'btn-accent'],
+            ['url' => '#inventory', 'label' => 'Inventory', 'icon' => 'box'],
+            ['url' => '#recipes', 'label' => 'Recipes', 'icon' => 'book'],
+        ],
+        $kitchenUnread
+    ) ?>
+
+    <?= renderDashSectionHeading('Kitchen summary', 'Production status at a glance') ?>
+    <div class="dash-stats-primary">
         <?= renderKpiCard('Pending Orders', (string) $pendingCount, 'hourglass-split', 'warning', null, '#schedule', 'View schedule') ?>
         <?= renderKpiCard('Preparing', (string) $preparingCount, 'fire', 'primary') ?>
         <?= renderKpiCard('Ready', (string) $readyCount, 'check-circle', 'success') ?>
         <?= renderKpiCard('Low Stock Items', (string) count($lowStock), 'exclamation-triangle', 'danger', null, '#inventory', 'View inventory') ?>
     </div>
 
+    <?= renderDashSectionHeading('Production orders', 'Active kitchen orders') ?>
     <div class="panel-card">
         <div class="panel-header d-flex justify-content-between align-items-center">
             <h5 class="mb-0"><i class="bi bi-fire"></i> Production Orders</h5>

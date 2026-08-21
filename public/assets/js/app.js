@@ -39,12 +39,23 @@ function initTheme() {
     const apply = (theme) => {
         document.documentElement.setAttribute('data-theme', theme);
         localStorage.setItem('sc-theme', theme);
+        document.dispatchEvent(new CustomEvent('themechange', { detail: { theme } }));
     };
+
+    const stored = localStorage.getItem('sc-theme');
+    const preferred = stored || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+    document.documentElement.setAttribute('data-theme', preferred);
 
     const toggle = () => apply(document.documentElement.getAttribute('data-theme') === 'dark' ? 'light' : 'dark');
 
     document.getElementById('themeToggle')?.addEventListener('click', toggle);
     document.getElementById('themeTogglePublic')?.addEventListener('click', toggle);
+
+    document.addEventListener('themechange', () => {
+        if (typeof window.refreshDashboardCharts === 'function') {
+            window.refreshDashboardCharts();
+        }
+    });
 }
 
 /* ─── Sidebar ─── */
@@ -92,9 +103,11 @@ async function initNotifications() {
         }
         list.innerHTML = data.notifications.map(n => `
             <a href="${n.link || '#'}" class="notification-item ${n.is_read ? '' : 'unread'}" data-id="${n.id}">
-                <strong>${escapeHtml(n.title)}</strong>
-                <p>${escapeHtml(n.message)}</p>
-                <small>${escapeHtml(n.time)}</small>
+                <div class="notification-item-body">
+                    <strong>${escapeHtml(n.title)}</strong>
+                    <p>${escapeHtml(n.message)}</p>
+                    <small>${escapeHtml(n.time)}</small>
+                </div>
             </a>
         `).join('');
     } catch {
@@ -327,10 +340,16 @@ async function processPayment(bookingId, method, amount) {
 window.processPayment = processPayment;
 
 /* ─── Chart helper ─── */
+function getChartTheme() {
+    const root = getComputedStyle(document.documentElement);
+    return {
+        text: root.getPropertyValue('--text-muted').trim() || '#718096',
+        grid: root.getPropertyValue('--border-color').trim() || '#e2e8f0',
+    };
+}
+
 function createThemedChart(canvas, config) {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    const textColor = isDark ? '#94a3b8' : '#64748b';
-    const gridColor = isDark ? 'rgba(148,163,184,0.1)' : 'rgba(100,116,139,0.1)';
+    const { text: textColor, grid: gridColor } = getChartTheme();
 
     if (config.options?.scales) {
         Object.values(config.options.scales).forEach(scale => {
@@ -344,3 +363,4 @@ function createThemedChart(canvas, config) {
     return new Chart(canvas, config);
 }
 window.createThemedChart = createThemedChart;
+window.getChartTheme = getChartTheme;

@@ -38,21 +38,63 @@ function orderStatusBadge(string $status): string
 
 function renderKpiCard(string $label, string $value, string $icon, string $color = 'accent', ?string $trend = null, ?string $link = null, ?string $linkText = null): string
 {
-    $trendHtml = $trend ? '<span class="kpi-trend">' . e($trend) . '</span>' : '';
-    $linkHtml = ($link && $linkText) ? '<a href="' . e($link) . '" class="kpi-link">' . e($linkText) . ' <i class="bi bi-arrow-right"></i></a>' : '';
+    $trendHtml = $trend ? '<span class="kpi-meta">' . e($trend) . '</span>' : '';
+    $linkHtml = ($link && $linkText) ? '<span class="kpi-link">' . e($linkText) . ' <i class="bi bi-arrow-right"></i></span>' : '';
     $tag = $link ? 'a' : 'div';
     $href = $link ? ' href="' . e($link) . '"' : '';
     return '<' . $tag . ' class="kpi-card kpi-' . e($color) . '"' . $href . '>
         <div class="kpi-card-inner">
-            <div class="kpi-icon"><i class="bi bi-' . e($icon) . '"></i></div>
-            <div class="kpi-body">
+            <div class="kpi-card-top">
                 <span class="kpi-label">' . e($label) . '</span>
+                <div class="kpi-icon"><i class="bi bi-' . e($icon) . '"></i></div>
+            </div>
+            <div class="kpi-body">
                 <span class="kpi-value">' . $value . '</span>
                 ' . $trendHtml . '
                 ' . $linkHtml . '
             </div>
         </div>
     </' . $tag . '>';
+}
+
+function renderDashboardWelcome(string $greeting, string $subtitle, array $actions = [], ?int $notificationCount = null): string
+{
+    $actionsHtml = '';
+    foreach ($actions as $action) {
+        $class = $action['class'] ?? 'btn-outline-secondary';
+        $icon = !empty($action['icon']) ? '<i class="bi bi-' . e($action['icon']) . '"></i> ' : '';
+        $actionsHtml .= '<a href="' . e($action['url']) . '" class="btn btn-sm ' . e($class) . '">' . $icon . e($action['label']) . '</a>';
+    }
+
+    $notifBadge = ($notificationCount !== null && $notificationCount > 0)
+        ? '<span class="dash-welcome-badge"><i class="bi bi-bell-fill"></i> ' . (int) $notificationCount . ' unread notification' . ($notificationCount === 1 ? '' : 's') . '</span>'
+        : '';
+
+    return '<div class="dash-welcome">
+        <div class="dash-welcome-content">
+            <p class="dash-welcome-eyebrow">' . e(date('l, F j, Y')) . '</p>
+            <h2 class="dash-welcome-title">' . e($greeting) . '</h2>
+            <p class="dash-welcome-subtitle">' . e($subtitle) . '</p>
+            ' . $notifBadge . '
+        </div>
+        <div class="dash-welcome-actions">' . $actionsHtml . '</div>
+    </div>';
+}
+
+function renderDashSectionHeading(string $title, ?string $subtitle = null, ?string $actionUrl = null, ?string $actionLabel = null): string
+{
+    $action = ($actionUrl && $actionLabel)
+        ? '<a href="' . e($actionUrl) . '" class="dash-section-link">' . e($actionLabel) . ' <i class="bi bi-arrow-right"></i></a>'
+        : '';
+    $sub = $subtitle ? '<p class="dash-section-desc">' . e($subtitle) . '</p>' : '';
+
+    return '<div class="dash-section-head">
+        <div>
+            <h3 class="dash-section-title">' . e($title) . '</h3>
+            ' . $sub . '
+        </div>
+        ' . $action . '
+    </div>';
 }
 
 function getDashboardNavigation(string $role): array

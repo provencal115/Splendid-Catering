@@ -21,6 +21,7 @@ $tasks = $tasks->fetchAll();
 $proofTasks = array_values(array_filter($tasks, fn($t) => !empty($t['proof_photo_url'])));
 
 $notifications = getUserNotifications($pdo, $userId, 30);
+$deliveryUnread = getUnreadNotificationCount($pdo, $userId);
 
 $scheduledCount = count(array_filter($tasks, fn($t) => $t['status'] === 'scheduled'));
 $inTransitCount = count(array_filter($tasks, fn($t) => in_array($t['status'], ['picked_up', 'in_transit'], true)));
@@ -42,14 +43,26 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
 ?>
 
 <!-- Overview -->
-<section class="dashboard-section" id="overview">
-    <div class="kpi-grid mb-4">
+<section class="dash-page dashboard-section" id="overview">
+    <?= renderDashboardWelcome(
+        'Welcome back, ' . $user['first_name'],
+        'Manage delivery routes, transit status, and proof of delivery.',
+        [
+            ['url' => '#routes', 'label' => 'Routes', 'icon' => 'signpost-split', 'class' => 'btn-accent'],
+            ['url' => '#proof', 'label' => 'Proof of Delivery', 'icon' => 'camera'],
+        ],
+        $deliveryUnread
+    ) ?>
+
+    <?= renderDashSectionHeading('Delivery summary', 'Logistics overview at a glance') ?>
+    <div class="dash-stats-primary">
         <?= renderKpiCard('Total Deliveries', (string) count($tasks), 'truck', 'primary', null, '#routes', 'View routes') ?>
         <?= renderKpiCard('Scheduled', (string) $scheduledCount, 'calendar-check', 'warning') ?>
         <?= renderKpiCard('In Transit', (string) $inTransitCount, 'signpost-split', 'info') ?>
         <?= renderKpiCard('Completed', (string) $completedCount, 'check-circle', 'success', null, '#proof', 'View proof') ?>
     </div>
 
+    <?= renderDashSectionHeading('Active deliveries', 'Tasks requiring your attention') ?>
     <div class="panel-card">
         <div class="panel-header">
             <h5 class="mb-0"><i class="bi bi-truck"></i> Active Deliveries</h5>

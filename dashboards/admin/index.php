@@ -118,6 +118,12 @@ if (empty($notifications)) {
 
 $websiteContent = $pdo->query('SELECT page_key, title, updated_at FROM website_content ORDER BY page_key')->fetchAll();
 
+$adminUser = currentUser();
+$adminUnread = getUnreadNotificationCount($pdo, (int) $adminUser['id']);
+$totalBookings = count($allBookings);
+$pendingRequests = (int) $analytics['orders_pending'] + (int) $analytics['pending_quotes'];
+$recentCustomers = array_slice($customers, 0, 5);
+
 $renderBookingsTable = static function (array $bookings) use ($config): void {
     if (empty($bookings)) {
         echo renderEmptyState('calendar-x', 'No bookings yet', 'Bookings will appear here once customers start placing orders.');
@@ -174,122 +180,196 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
 ?>
 
 <!-- Overview -->
-<section class="dashboard-section" id="overview">
-    <div class="kpi-grid mb-4">
-        <?= renderKpiCard("Today's Orders", (string) $analytics['orders_today'], 'bag-check', 'primary') ?>
-        <?= renderKpiCard('Pending Orders', (string) $analytics['orders_pending'], 'hourglass-split', 'warning') ?>
-        <?= renderKpiCard("Today's Revenue", formatMoney($analytics['revenue_today']), 'cash-coin', 'success') ?>
-        <?= renderKpiCard('Monthly Revenue', formatMoney($analytics['revenue_month']), 'graph-up-arrow', 'accent') ?>
-        <?= renderKpiCard('Upcoming Events', (string) $analytics['upcoming_events'], 'calendar-event', 'info') ?>
-        <?= renderKpiCard('Total Customers', (string) $analytics['total_customers'], 'people', 'primary') ?>
-        <?= renderKpiCard('Outstanding Payments', formatMoney($analytics['outstanding']), 'exclamation-circle', 'danger') ?>
+<section class="dash-page dashboard-section" id="overview">
+    <?= renderDashboardWelcome(
+        'Welcome back, ' . $adminUser['first_name'],
+        'Monitor bookings, revenue, and operations across Splendid Catering.',
+        [
+            ['url' => '#orders', 'label' => 'View Orders', 'icon' => 'bag-check', 'class' => 'btn-accent'],
+            ['url' => '#calendar', 'label' => 'Calendar', 'icon' => 'calendar3'],
+            ['url' => '#reports', 'label' => 'Reports', 'icon' => 'bar-chart-line'],
+            ['url' => url('book'), 'label' => 'New Booking', 'icon' => 'plus-lg'],
+        ],
+        $adminUnread
+    ) ?>
+
+    <?= renderDashSectionHeading('Performance summary', 'Key metrics at a glance') ?>
+    <div class="dash-stats-primary">
+        <?= renderKpiCard('Total Bookings', (string) $totalBookings, 'calendar-check', 'primary', (int) $analytics['active_bookings'] . ' active', '#bookings', 'View bookings') ?>
+        <?= renderKpiCard('Upcoming Events', (string) $analytics['upcoming_events'], 'calendar-event', 'info', (int) $analytics['confirmed_events'] . ' confirmed', '#events', 'View schedule') ?>
+        <?= renderKpiCard('Total Customers', (string) $analytics['total_customers'], 'people', 'accent', (int) $analytics['new_customers_month'] . ' new this month', '#customers', 'Manage customers') ?>
+        <?= renderKpiCard('Monthly Revenue', formatMoney($analytics['revenue_month']), 'graph-up-arrow', 'success', formatMoney($analytics['revenue_week']) . ' this week', '#payments', 'View payments') ?>
     </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-7">
-            <div class="panel-card h-100">
-                <div class="panel-header">
-                    <h5 class="mb-0"><i class="bi bi-graph-up"></i> Revenue — Last 7 Days</h5>
-                </div>
-                <div class="panel-body">
-                    <canvas id="revenueChart" height="120" aria-label="Revenue chart last 7 days"></canvas>
-                </div>
+    <div class="dash-stats-secondary">
+        <?= renderKpiCard('Pending Requests', (string) $pendingRequests, 'hourglass-split', 'warning', (int) $analytics['pending_quotes'] . ' quotes · ' . (int) $analytics['orders_pending'] . ' orders') ?>
+        <?= renderKpiCard("Today's Orders", (string) $analytics['orders_today'], 'bag-check', 'primary', formatMoney($analytics['revenue_today']) . ' revenue today') ?>
+        <?= renderKpiCard('Outstanding Payments', formatMoney($analytics['outstanding']), 'exclamation-circle', 'danger', null, '#payments', 'Review payments') ?>
+    </div>
+
+    <?= renderDashSectionHeading('Analytics', 'Revenue trends, booking activity, and popular packages', '#reports', 'Full reports') ?>
+    <div class="dash-analytics-grid">
+        <div class="panel-card dash-panel-wide">
+            <div class="panel-header">
+                <h5 class="mb-0"><i class="bi bi-graph-up"></i> Revenue — Last 7 Days</h5>
+            </div>
+            <div class="panel-body dash-chart-body">
+                <canvas id="revenueChart" height="120" aria-label="Revenue chart last 7 days"></canvas>
             </div>
         </div>
-        <div class="col-lg-5">
-            <div class="panel-card h-100">
-                <div class="panel-header">
-                    <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Orders by Status</h5>
-                </div>
-                <div class="panel-body">
-                    <canvas id="ordersChart" height="180" aria-label="Orders by status chart"></canvas>
-                </div>
+        <div class="panel-card">
+            <div class="panel-header">
+                <h5 class="mb-0"><i class="bi bi-pie-chart"></i> Orders by Status</h5>
+            </div>
+            <div class="panel-body dash-chart-body dash-chart-body--compact">
+                <canvas id="ordersChart" height="180" aria-label="Orders by status chart"></canvas>
+            </div>
+        </div>
+        <div class="panel-card">
+            <div class="panel-header">
+                <h5 class="mb-0"><i class="bi bi-bar-chart"></i> Booking Trends — 6 Months</h5>
+            </div>
+            <div class="panel-body dash-chart-body dash-chart-body--compact">
+                <canvas id="bookingTrendsChart" height="180" aria-label="Booking trends chart"></canvas>
+            </div>
+        </div>
+        <div class="panel-card">
+            <div class="panel-header">
+                <h5 class="mb-0"><i class="bi bi-box-seam"></i> Popular Packages</h5>
+            </div>
+            <div class="panel-body">
+                <?php if (empty($analytics['popular_packages'])): ?>
+                    <p class="text-muted small mb-0">Package booking data will appear here.</p>
+                <?php else: ?>
+                    <ul class="dash-rank-list">
+                    <?php foreach ($analytics['popular_packages'] as $i => $pkg): ?>
+                        <li class="dash-rank-item">
+                            <span class="dash-rank-index"><?= $i + 1 ?></span>
+                            <div class="dash-rank-content">
+                                <strong><?= e($pkg['name']) ?></strong>
+                                <span><?= (int) $pkg['cnt'] ?> booking<?= (int) $pkg['cnt'] === 1 ? '' : 's' ?></span>
+                            </div>
+                        </li>
+                    <?php endforeach; ?>
+                    </ul>
+                <?php endif; ?>
             </div>
         </div>
     </div>
 
-    <div class="row g-4 mb-4">
-        <div class="col-lg-8">
+    <?= renderDashSectionHeading('Recent activity', 'Latest bookings, customers, and upcoming events') ?>
+    <div class="dash-activity-grid">
+        <div class="panel-card dash-activity-main">
+            <div class="panel-header d-flex justify-content-between align-items-center">
+                <h5 class="mb-0"><i class="bi bi-receipt"></i> Recent Bookings</h5>
+                <a href="#orders" class="btn btn-sm btn-outline-secondary">View all</a>
+            </div>
+            <div class="panel-body p-0">
+                <?php if (empty($recentOrders)): ?>
+                    <?= renderEmptyState('inbox', 'No recent orders', 'New customer orders will show up here.') ?>
+                <?php else: ?>
+                <div class="table-responsive">
+                    <table class="table data-table table-hover mb-0">
+                        <thead>
+                            <tr>
+                                <th>Reference</th>
+                                <th>Customer</th>
+                                <th>Event Date</th>
+                                <th>Package</th>
+                                <th>Amount</th>
+                                <th>Payment</th>
+                                <th>Status</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($recentOrders as $order): ?>
+                            <tr>
+                                <td><strong><?= e($order['reference_no']) ?></strong></td>
+                                <td><?= e($order['first_name'] . ' ' . $order['last_name']) ?></td>
+                                <td><?= e(date('M j, Y', strtotime($order['event_date']))) ?></td>
+                                <td><?= e($order['package_name'] ?? '—') ?></td>
+                                <td><?= formatMoney((float) $order['total_amount']) ?></td>
+                                <td><?= paymentStatusBadge($order['payment_status']) ?></td>
+                                <td><?= orderStatusBadge($order['status']) ?></td>
+                                <td>
+                                    <a href="<?= e(api_url('invoice') . '?booking_id=' . (int) $order['id']) ?>" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
+                                        <i class="bi bi-file-earmark-pdf"></i> Invoice
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <div class="dash-activity-side">
             <div class="panel-card">
                 <div class="panel-header d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0"><i class="bi bi-receipt"></i> Recent Orders</h5>
-                    <a href="#orders" class="btn btn-sm btn-outline-secondary">View all</a>
-                </div>
-                <div class="panel-body p-0">
-                    <?php if (empty($recentOrders)): ?>
-                        <?= renderEmptyState('inbox', 'No recent orders', 'New customer orders will show up here.') ?>
-                    <?php else: ?>
-                    <div class="table-responsive">
-                        <table class="table data-table table-hover mb-0">
-                            <thead>
-                                <tr>
-                                    <th>Reference</th>
-                                    <th>Customer</th>
-                                    <th>Event Date</th>
-                                    <th>Package</th>
-                                    <th>Amount</th>
-                                    <th>Payment</th>
-                                    <th>Status</th>
-                                    <th>Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                            <?php foreach ($recentOrders as $order): ?>
-                                <tr>
-                                    <td><strong><?= e($order['reference_no']) ?></strong></td>
-                                    <td><?= e($order['first_name'] . ' ' . $order['last_name']) ?></td>
-                                    <td><?= e(date('M j, Y', strtotime($order['event_date']))) ?></td>
-                                    <td><?= e($order['package_name'] ?? '—') ?></td>
-                                    <td><?= formatMoney((float) $order['total_amount']) ?></td>
-                                    <td><?= paymentStatusBadge($order['payment_status']) ?></td>
-                                    <td><?= orderStatusBadge($order['status']) ?></td>
-                                    <td>
-                                        <a href="<?= e(api_url('invoice') . '?booking_id=' . (int) $order['id']) ?>" class="btn btn-sm btn-outline-secondary" target="_blank" rel="noopener">
-                                            <i class="bi bi-file-earmark-pdf"></i> Invoice
-                                        </a>
-                                    </td>
-                                </tr>
-                            <?php endforeach; ?>
-                            </tbody>
-                        </table>
-                    </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
-        <div class="col-lg-4">
-            <div class="panel-card">
-                <div class="panel-header">
                     <h5 class="mb-0"><i class="bi bi-stars"></i> Upcoming Events</h5>
+                    <a href="#events" class="btn btn-sm btn-outline-secondary">View all</a>
                 </div>
                 <div class="panel-body">
                     <?php if (empty($upcomingEvents)): ?>
                         <?= renderEmptyState('calendar-x', 'No upcoming events', 'Scheduled events will appear here.') ?>
                     <?php else: ?>
-                        <div class="event-cards">
+                        <div class="activity-feed">
                         <?php foreach ($upcomingEvents as $event): ?>
-                            <div class="event-card mb-3">
-                                <div class="d-flex justify-content-between align-items-start">
-                                    <div>
+                            <article class="activity-item">
+                                <div class="activity-item-icon"><i class="bi bi-calendar-event"></i></div>
+                                <div class="activity-item-body">
+                                    <div class="activity-item-head">
                                         <strong><?= e($event['event_type'] ?? 'Event') ?></strong>
-                                        <div class="text-muted small"><?= e($event['first_name'] . ' ' . $event['last_name']) ?></div>
+                                        <?= orderStatusBadge($event['status']) ?>
                                     </div>
-                                    <?= orderStatusBadge($event['status']) ?>
+                                    <p class="activity-item-meta"><?= e($event['first_name'] . ' ' . $event['last_name']) ?></p>
+                                    <p class="activity-item-meta">
+                                        <i class="bi bi-calendar3"></i>
+                                        <?= e(date('D, M j, Y', strtotime($event['event_date']))) ?>
+                                        <?php if (!empty($event['event_time'])): ?>
+                                            · <?= e(substr((string) $event['event_time'], 0, 5)) ?>
+                                        <?php endif; ?>
+                                    </p>
+                                    <p class="activity-item-detail">
+                                        <?= e($event['package_name'] ?? $event['service_name'] ?? 'Custom package') ?>
+                                        · <?= (int) $event['guest_count'] ?> guests
+                                        · <strong><?= formatMoney((float) $event['total_amount']) ?></strong>
+                                    </p>
                                 </div>
-                                <div class="mt-2 small">
-                                    <i class="bi bi-calendar3"></i> <?= e(date('D, M j, Y', strtotime($event['event_date']))) ?>
-                                    <?php if (!empty($event['event_time'])): ?>
-                                        · <?= e(substr((string) $event['event_time'], 0, 5)) ?>
-                                    <?php endif; ?>
-                                </div>
-                                <div class="small text-muted">
-                                    <?= e($event['package_name'] ?? $event['service_name'] ?? 'Custom package') ?>
-                                    · <?= (int) $event['guest_count'] ?> guests
-                                </div>
-                                <div class="small mt-1"><strong><?= formatMoney((float) $event['total_amount']) ?></strong></div>
-                            </div>
+                            </article>
                         <?php endforeach; ?>
                         </div>
+                    <?php endif; ?>
+                </div>
+            </div>
+
+            <div class="panel-card">
+                <div class="panel-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-person-plus"></i> Recent Customers</h5>
+                    <a href="#customers" class="btn btn-sm btn-outline-secondary">View all</a>
+                </div>
+                <div class="panel-body p-0">
+                    <?php if (empty($recentCustomers)): ?>
+                        <?= renderEmptyState('person-x', 'No customers yet', 'Customer accounts will appear here after registration.') ?>
+                    <?php else: ?>
+                    <ul class="dash-customer-list">
+                        <?php foreach ($recentCustomers as $customer): ?>
+                        <li class="dash-customer-item">
+                            <div class="dash-customer-avatar"><?= e(strtoupper(substr($customer['first_name'], 0, 1) . substr($customer['last_name'], 0, 1))) ?></div>
+                            <div class="dash-customer-info">
+                                <strong><?= e($customer['first_name'] . ' ' . $customer['last_name']) ?></strong>
+                                <span><?= e($customer['email']) ?></span>
+                            </div>
+                            <div class="dash-customer-stats">
+                                <span><?= (int) $customer['booking_count'] ?> bookings</span>
+                                <strong><?= formatMoney((float) $customer['total_spend']) ?></strong>
+                            </div>
+                        </li>
+                        <?php endforeach; ?>
+                    </ul>
                     <?php endif; ?>
                 </div>
             </div>
@@ -857,68 +937,118 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
 
 <script type="application/json" id="revenueChartData"><?= json_encode($analytics['revenue_chart'], JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 <script type="application/json" id="ordersChartData"><?= json_encode($analytics['orders_chart'], JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
+<script type="application/json" id="bookingTrendsChartData"><?= json_encode($analytics['booking_trends'], JSON_HEX_TAG | JSON_HEX_AMP) ?></script>
 
 <script>
 (function () {
     const revenueData = JSON.parse(document.getElementById('revenueChartData').textContent);
     const ordersData = JSON.parse(document.getElementById('ordersChartData').textContent);
-    window.__chartData = { revenue: revenueData, orders: ordersData };
+    const trendsData = JSON.parse(document.getElementById('bookingTrendsChartData').textContent);
+    window.__chartData = { revenue: revenueData, orders: ordersData, trends: trendsData };
+
+    let revenueChartInstance = null;
+    let ordersChartInstance = null;
+    let bookingTrendsChartInstance = null;
+
+    function chartThemeColors() {
+        const root = getComputedStyle(document.documentElement);
+        return {
+            text: root.getPropertyValue('--text-muted').trim() || '#718096',
+            grid: root.getPropertyValue('--border-color').trim() || '#e2e8f0',
+            accent: root.getPropertyValue('--accent-color').trim() || '#C9A962',
+            accentSoft: root.getPropertyValue('--accent-muted').trim() || 'rgba(201, 169, 98, 0.15)',
+            info: root.getPropertyValue('--info-color').trim() || '#3498DB',
+        };
+    }
 
     function initCharts() {
         const revenueEl = document.getElementById('revenueChart');
         const ordersEl = document.getElementById('ordersChart');
-        if (!revenueEl || !ordersEl || typeof Chart === 'undefined') return;
+        const trendsEl = document.getElementById('bookingTrendsChart');
+        if (typeof Chart === 'undefined') return;
 
-        const gridColor = getComputedStyle(document.documentElement).getPropertyValue('--cream-dark').trim() || '#e9ecef';
-        const textColor = getComputedStyle(document.documentElement).getPropertyValue('--text-light').trim() || '#6c757d';
+        if (revenueChartInstance) revenueChartInstance.destroy();
+        if (ordersChartInstance) ordersChartInstance.destroy();
+        if (bookingTrendsChartInstance) bookingTrendsChartInstance.destroy();
 
-        new Chart(revenueEl, {
-            type: 'line',
-            data: {
-                labels: window.__chartData.revenue.map(d => d.label),
-                datasets: [{
-                    label: 'Revenue',
-                    data: window.__chartData.revenue.map(d => d.value),
-                    borderColor: '#C9A962',
-                    backgroundColor: 'rgba(201, 169, 98, 0.15)',
-                    fill: true,
-                    tension: 0.35,
-                    pointRadius: 4,
-                    pointBackgroundColor: '#C9A962'
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: { legend: { display: false } },
-                scales: {
-                    x: { grid: { color: gridColor }, ticks: { color: textColor } },
-                    y: { grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }
-                }
-            }
-        });
+        const { text: textColor, grid: gridColor, accent, accentSoft, info } = chartThemeColors();
 
-        new Chart(ordersEl, {
-            type: 'doughnut',
-            data: {
-                labels: window.__chartData.orders.map(d => d.label),
-                datasets: [{
-                    data: window.__chartData.orders.map(d => d.value),
-                    backgroundColor: ['#F39C12', '#3498DB', '#667eea', '#2ecc71', '#27ae60', '#e74c3c'],
-                    borderWidth: 0
-                }]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: true,
-                plugins: {
-                    legend: {
-                        position: 'bottom',
-                        labels: { color: textColor, boxWidth: 12, padding: 12 }
+        if (revenueEl) {
+            revenueChartInstance = new Chart(revenueEl, {
+                type: 'line',
+                data: {
+                    labels: window.__chartData.revenue.map(d => d.label),
+                    datasets: [{
+                        label: 'Revenue',
+                        data: window.__chartData.revenue.map(d => d.value),
+                        borderColor: accent,
+                        backgroundColor: accentSoft,
+                        fill: true,
+                        tension: 0.35,
+                        pointRadius: 4,
+                        pointBackgroundColor: accent
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { color: gridColor }, ticks: { color: textColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor }, beginAtZero: true }
                     }
                 }
-            }
-        });
+            });
+        }
+
+        if (ordersEl) {
+            ordersChartInstance = new Chart(ordersEl, {
+                type: 'doughnut',
+                data: {
+                    labels: window.__chartData.orders.map(d => d.label),
+                    datasets: [{
+                        data: window.__chartData.orders.map(d => d.value),
+                        backgroundColor: ['#F39C12', '#3498DB', '#667eea', '#2ecc71', '#27ae60', '#e74c3c'],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: { color: textColor, boxWidth: 12, padding: 12 }
+                        }
+                    }
+                }
+            });
+        }
+
+        if (trendsEl) {
+            bookingTrendsChartInstance = new Chart(trendsEl, {
+                type: 'bar',
+                data: {
+                    labels: window.__chartData.trends.map(d => d.label),
+                    datasets: [{
+                        label: 'Bookings',
+                        data: window.__chartData.trends.map(d => d.value),
+                        backgroundColor: info,
+                        borderRadius: 6,
+                        borderSkipped: false
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: {
+                        x: { grid: { display: false }, ticks: { color: textColor } },
+                        y: { grid: { color: gridColor }, ticks: { color: textColor, precision: 0 }, beginAtZero: true }
+                    }
+                }
+            });
+        }
     }
 
     async function updateBookingStatus(id, status) {
@@ -953,6 +1083,7 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
     }
 
     window.initCharts = initCharts;
+    window.refreshDashboardCharts = initCharts;
     window.updateBookingStatus = updateBookingStatus;
     window.exportReport = exportReport;
 
@@ -960,6 +1091,7 @@ include ROOT_PATH . '/includes/dashboard-layout.php';
         initCharts();
         highlightSidebarSection();
     });
+    document.addEventListener('themechange', initCharts);
     window.addEventListener('hashchange', highlightSidebarSection);
 })();
 </script>

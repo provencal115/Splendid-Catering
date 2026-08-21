@@ -20,7 +20,7 @@ function hasRole(string|array $roles): bool
     return in_array($user['role'], $roles, true);
 }
 
-function requireAuth(?string $role = null): void
+function requireAuth(string|array|null $role = null): void
 {
     if (!isLoggedIn()) {
         flash('warning', 'Please log in to continue.');

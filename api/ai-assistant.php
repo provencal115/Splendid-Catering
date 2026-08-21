@@ -28,7 +28,8 @@ foreach ($responses as $keyword => $response) {
 
 // Log chat
 $sessionId = $_SESSION['chat_session'] ??= bin2hex(random_bytes(16));
-$pdo->prepare('INSERT INTO chat_messages (session_id, sender_id, sender_type, message) VALUES (?, ?, "customer", ?)')->execute([$sessionId, currentUser()['id'] ?? null, $input['message'] ?? '']);
+$chatUserId = isLoggedIn() ? currentUser()['id'] : null;
+$pdo->prepare('INSERT INTO chat_messages (session_id, sender_id, sender_type, message) VALUES (?, ?, "customer", ?)')->execute([$sessionId, $chatUserId, $input['message'] ?? '']);
 $pdo->prepare('INSERT INTO chat_messages (session_id, sender_type, message) VALUES (?, "ai", ?)')->execute([$sessionId, $reply]);
 
 jsonResponse(['success' => true, 'reply' => $reply]);

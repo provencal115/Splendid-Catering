@@ -1,7 +1,7 @@
 <?php
 
 return [
-    'name' => 'Splendid Caterery',
+    'name' => 'Splendid Catering',
     'tagline' => 'Smart Catering & Event Management',
     'url' => 'http://localhost:8080',
     'timezone' => 'Africa/Accra',

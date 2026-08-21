@@ -5,7 +5,7 @@
             <div class="col-lg-4">
                 <div class="footer-brand mb-3">
                     <span class="brand-icon"><i class="bi bi-cup-hot-fill"></i></span>
-                    <strong>Splendid Caterery</strong>
+                    <strong>Splendid Catering</strong>
                 </div>
                 <p class="text-muted-light">Ghana's premier smart catering platform. From intimate gatherings to grand celebrations, we deliver world-class cuisine with flawless execution.</p>
                 <div class="social-links">
@@ -45,7 +45,7 @@
         </div>
         <hr class="footer-divider">
         <div class="d-flex flex-wrap justify-content-between align-items-center">
-            <p class="mb-0 text-muted-light small">&copy; <?= date('Y') ?> Splendid Caterery. All rights reserved.</p>
+            <p class="mb-0 text-muted-light small">&copy; <?= date('Y') ?> Splendid Catering. All rights reserved.</p>
             <p class="mb-0 text-muted-light small">Powered by Smart Catering Technology</p>
         </div>
     </div>
@@ -66,7 +66,7 @@
         </div>
         <div class="chat-messages" id="chatMessages">
             <div class="chat-msg bot">
-                <p>Hello! 👋 I'm your Splendid Caterery assistant. How can I help you plan your event today?</p>
+                <p>Hello! 👋 I'm your Splendid Catering assistant. How can I help you plan your event today?</p>
             </div>
         </div>
         <div class="chat-input">

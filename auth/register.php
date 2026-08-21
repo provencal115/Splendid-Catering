@@ -29,7 +29,7 @@ if (isPost()) {
     }
 
     autoLogin($pdo, $userId);
-    flash('success', 'Welcome to Splendid Caterery!');
+    flash('success', 'Welcome to Splendid Catering!');
     redirect(url('dashboard/customer'));
 }
 
@@ -43,8 +43,8 @@ include ROOT_PATH . '/includes/header.php';
             <div class="auth-card" data-aos="fade-up">
                 <div class="brand-icon"><i class="bi bi-person-plus-fill"></i></div>
                 <h3 class="text-center mb-1">Create Account</h3>
-                <p class="text-center text-muted mb-4">Join Splendid Caterery to book and manage events</p>
-                <form method="POST">
+                <p class="text-center text-muted mb-4">Join Splendid Catering to book and manage events</p>
+                <form method="POST" novalidate>
                     <?= csrfField() ?>
                     <div class="row g-3">
                         <div class="col-md-6"><label class="form-label">First Name</label><input type="text" name="first_name" class="form-control" required></div>
@@ -53,7 +53,7 @@ include ROOT_PATH . '/includes/header.php';
                         <div class="col-md-6"><label class="form-label">Phone</label><input type="tel" name="phone" class="form-control"></div>
                         <div class="col-md-6"><label class="form-label">City</label><input type="text" name="city" class="form-control" placeholder="Accra"></div>
                         <div class="col-md-6"><label class="form-label">Password</label><input type="password" name="password" class="form-control" required minlength="6"></div>
-                        <div class="col-12"><button type="submit" class="btn btn-gold w-100">Create Account</button></div>
+                        <div class="col-12"><button type="submit" class="btn btn-accent w-100"><i class="bi bi-person-plus"></i> Create Account</button></div>
                     </div>
                 </form>
                 <p class="text-center small text-muted mt-3 mb-0">Already have an account? <a href="<?= url('auth/login') ?>">Sign In</a></p>

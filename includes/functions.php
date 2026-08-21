@@ -62,6 +62,11 @@ function asset(string $path): string
     return BASE_URL . '/assets/' . ltrim($path, '/');
 }
 
+function api_url(string $endpoint): string
+{
+    return BASE_URL . '/api/' . ltrim($endpoint, '/');
+}
+
 function csrfToken(): string
 {
     if (!isset($_SESSION['csrf_token'])) {

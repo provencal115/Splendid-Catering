@@ -27,18 +27,18 @@ include ROOT_PATH . '/includes/header.php';
             <div class="auth-card" data-aos="fade-up">
                 <div class="brand-icon"><i class="bi bi-cup-hot-fill"></i></div>
                 <h3 class="text-center mb-1">Welcome Back</h3>
-                <p class="text-center text-muted mb-4">Sign in to your Splendid Caterery account</p>
-                <form method="POST">
+                <p class="text-center text-muted mb-4">Sign in to your Splendid Catering account</p>
+                <form method="POST" novalidate>
                     <?= csrfField() ?>
                     <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" required value="<?= e($_POST['email'] ?? '') ?>">
+                        <label class="form-label" for="email">Email address</label>
+                        <input type="email" name="email" id="email" class="form-control" required autocomplete="email" value="<?= e($_POST['email'] ?? '') ?>">
                     </div>
                     <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" required>
+                        <label class="form-label" for="password">Password</label>
+                        <input type="password" name="password" id="password" class="form-control" required autocomplete="current-password" minlength="6">
                     </div>
-                    <button type="submit" class="btn btn-gold w-100 mb-3">Sign In</button>
+                    <button type="submit" class="btn btn-accent w-100 mb-3"><i class="bi bi-box-arrow-in-right"></i> Sign In</button>
                 </form>
                 <p class="text-center small text-muted mb-0">Don't have an account? <a href="<?= url('auth/register') ?>">Register</a></p>
                 <hr>

@@ -39,6 +39,7 @@ $dbConfig = require ROOT_PATH . '/config/database.php';
 
 require_once ROOT_PATH . '/includes/functions.php';
 require_once ROOT_PATH . '/includes/auth.php';
+require_once ROOT_PATH . '/includes/components.php';
 
 try {
     $dsn = sprintf(

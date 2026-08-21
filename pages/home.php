@@ -1,6 +1,6 @@
 <?php
 $pageTitle = 'Home';
-$pageDescription = 'Splendid Caterery - Premium catering and event management in Ghana. Weddings, corporate events, and celebrations.';
+$pageDescription = 'Splendid Catering - Premium catering and event management in Ghana. Weddings, corporate events, and celebrations.';
 $services = $pdo->query('SELECT * FROM service_types WHERE is_active = 1 ORDER BY sort_order LIMIT 6')->fetchAll();
 $packages = $pdo->query('SELECT * FROM packages WHERE is_active = 1 ORDER BY sort_order LIMIT 3')->fetchAll();
 $testimonials = $pdo->query('SELECT * FROM testimonials WHERE is_featured = 1 AND is_active = 1 LIMIT 3')->fetchAll();
@@ -14,7 +14,7 @@ include ROOT_PATH . '/includes/header.php';
             <div class="col-lg-7" data-aos="fade-right">
                 <div class="hero-badge"><i class="bi bi-stars"></i> Ghana's Premier Smart Catering Platform</div>
                 <h1 class="hero-title">Crafting <span>Extraordinary</span> Culinary Experiences</h1>
-                <p class="hero-subtitle">From intimate gatherings to grand celebrations, Splendid Caterery delivers world-class cuisine with AI-powered planning, seamless booking, and flawless execution.</p>
+                <p class="hero-subtitle">From intimate gatherings to grand celebrations, Splendid Catering delivers world-class cuisine with AI-powered planning, seamless booking, and flawless execution.</p>
                 <div class="d-flex flex-wrap gap-3">
                     <a href="<?= url('book') ?>" class="btn btn-gold btn-lg"><i class="bi bi-calendar-check"></i> Book Your Event</a>
                     <a href="<?= url('packages') ?>" class="btn btn-outline-light btn-lg">View Packages</a>

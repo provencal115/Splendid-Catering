@@ -8,7 +8,7 @@ include ROOT_PATH . '/includes/header.php';
     <div class="hero-bg" style="background-image:url('https://images.unsplash.com/photo-1559339352-11d035aa65de?w=1920&q=80')"></div>
     <div class="container hero-content text-center">
         <span class="hero-badge" data-aos="fade-up">Our Story</span>
-        <h1 class="hero-title" data-aos="fade-up">About Splendid Caterery</h1>
+        <h1 class="hero-title" data-aos="fade-up">About Splendid Catering</h1>
         <p class="hero-subtitle mx-auto" data-aos="fade-up">Passion for food. Excellence in service. Innovation in technology.</p>
     </div>
 </section>

@@ -59,12 +59,20 @@ $routes = [
         '/api/availability' => 'api/availability.php',
         '/api/ai-forecast' => 'api/ai-forecast.php',
         '/api/invoice' => 'api/invoice.php',
+        '/api/notifications' => 'api/notifications.php',
+        '/api/search' => 'api/search.php',
+    ],
+    'POST_API' => [
+        '/api/notifications' => 'api/notifications.php',
     ],
 ];
 
 // Merge GET API routes
 foreach ($routes['GET_API'] as $path => $file) {
     $routes['GET'][$path] = $file;
+}
+foreach ($routes['POST_API'] ?? [] as $path => $file) {
+    $routes['POST'][$path] = $file;
 }
 
 $file = $routes[$method][$uri] ?? null;

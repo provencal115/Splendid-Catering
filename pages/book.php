@@ -181,7 +181,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Load availability
     try {
-        const res = await fetch('/api/availability');
+        const res = await fetch((window.APP_BASE || '') + '/api/availability');
         const data = await res.json();
         const cal = document.getElementById('availabilityCalendar');
         if (cal && data.days) {

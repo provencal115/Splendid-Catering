@@ -14,7 +14,9 @@ switch ($action) {
         jsonResponse(['success' => true]);
 
     case 'assign_staff':
-        $pdo->prepare('INSERT INTO staff_assignments (booking_id, staff_id, role, assigned_by) VALUES (?, ?, ?, ?) ON DUPLICATE KEY UPDATE staff_id = VALUES(staff_id)')
+        $pdo->prepare('DELETE FROM staff_assignments WHERE booking_id = ? AND role = ?')
+            ->execute([$input['booking_id'], $input['role']]);
+        $pdo->prepare('INSERT INTO staff_assignments (booking_id, staff_id, role, assigned_by) VALUES (?, ?, ?, ?)')
             ->execute([$input['booking_id'], $input['staff_id'], $input['role'], currentUser()['id']]);
         if ($input['role'] === 'chef') {
             $pdo->prepare('UPDATE kitchen_orders SET chef_id = ? WHERE booking_id = ?')->execute([$input['staff_id'], $input['booking_id']]);

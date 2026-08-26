@@ -13,25 +13,40 @@ if (isPost()) {
 include ROOT_PATH . '/includes/header.php';
 ?>
 
-<section class="hero-section" style="min-height:35vh;">
-    <div class="hero-bg" style="background-image:url('https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1920&q=80')"></div>
-    <div class="container hero-content text-center">
-        <h1 class="hero-title" data-aos="fade-up">Contact Us</h1>
-        <p class="hero-subtitle mx-auto" data-aos="fade-up">Let's plan your perfect event together</p>
-    </div>
-</section>
+<?= renderPublicHero(
+    'Contact Us',
+    "Let's plan your perfect event together — our team responds within 24 hours.",
+    'Get in Touch',
+    'https://images.unsplash.com/photo-1556910103-1c02745aae4d?w=1920&q=80',
+    [
+        ['url' => url('book'), 'label' => 'Book Catering', 'icon' => 'calendar-check', 'class' => 'btn-gold btn-lg'],
+    ],
+    true
+) ?>
 
 <section class="section">
     <div class="container">
         <div class="row g-5">
             <div class="col-lg-5" data-aos="fade-right">
-                <h3>Get in Touch</h3>
-                <p class="text-muted">Have questions about our services, packages, or availability? Our team is ready to help.</p>
+                <h3 class="display-font">We'd love to hear from you</h3>
+                <p class="text-muted">Have questions about our services, packages, or availability? Our team is ready to help craft your perfect menu.</p>
                 <ul class="list-unstyled mt-4">
-                    <li class="mb-3 d-flex gap-3"><i class="bi bi-geo-alt-fill" style="color:var(--gold);font-size:1.25rem"></i><div><strong>Address</strong><br>14 Independence Avenue, Accra, Ghana</div></li>
-                    <li class="mb-3 d-flex gap-3"><i class="bi bi-telephone-fill" style="color:var(--gold);font-size:1.25rem"></i><div><strong>Phone</strong><br><?= e($config['support_phone']) ?></div></li>
-                    <li class="mb-3 d-flex gap-3"><i class="bi bi-envelope-fill" style="color:var(--gold);font-size:1.25rem"></i><div><strong>Email</strong><br><?= e($config['support_email']) ?></div></li>
-                    <li class="mb-3 d-flex gap-3"><i class="bi bi-clock-fill" style="color:var(--gold);font-size:1.25rem"></i><div><strong>Hours</strong><br>Mon–Sat: 8AM – 8PM</div></li>
+                    <li class="mb-3 d-flex gap-3">
+                        <span class="service-card-premium__icon flex-shrink-0"><i class="bi bi-geo-alt-fill"></i></span>
+                        <div><strong>Address</strong><br>14 Independence Avenue, Accra, Ghana</div>
+                    </li>
+                    <li class="mb-3 d-flex gap-3">
+                        <span class="service-card-premium__icon flex-shrink-0"><i class="bi bi-telephone-fill"></i></span>
+                        <div><strong>Phone</strong><br><?= e($config['support_phone']) ?></div>
+                    </li>
+                    <li class="mb-3 d-flex gap-3">
+                        <span class="service-card-premium__icon flex-shrink-0"><i class="bi bi-envelope-fill"></i></span>
+                        <div><strong>Email</strong><br><?= e($config['support_email']) ?></div>
+                    </li>
+                    <li class="mb-3 d-flex gap-3">
+                        <span class="service-card-premium__icon flex-shrink-0"><i class="bi bi-clock-fill"></i></span>
+                        <div><strong>Hours</strong><br>Mon–Sat: 8AM – 8PM</div>
+                    </li>
                 </ul>
             </div>
             <div class="col-lg-7" data-aos="fade-left">
@@ -48,7 +63,7 @@ include ROOT_PATH . '/includes/header.php';
                                 </select>
                             </div>
                             <div class="col-12"><label class="form-label">Message</label><textarea name="message" class="form-control" rows="4" required></textarea></div>
-                            <div class="col-12"><button type="submit" class="btn btn-gold btn-lg"><i class="bi bi-send"></i> Send Message</button></div>
+                            <div class="col-12"><button type="submit" class="btn btn-gold btn-lg btn-interactive"><i class="bi bi-send"></i> Send Message</button></div>
                         </div>
                     </form>
                 </div>

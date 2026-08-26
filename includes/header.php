@@ -17,17 +17,18 @@ $isDashboard = $isDashboard ?? false;
     </script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Inter:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet">
     <?php if (!$isDashboard): ?><link href="https://unpkg.com/aos@2.3.1/dist/aos.css" rel="stylesheet"><?php endif; ?>
     <link href="<?= asset('css/style.css') ?>" rel="stylesheet">
     <link href="<?= asset('css/theme.css') ?>" rel="stylesheet">
+    <?php if (!$isDashboard): ?><link href="<?= asset('css/public.css') ?>" rel="stylesheet"><?php endif; ?>
     <?php if ($isDashboard): ?>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <?php endif; ?>
 </head>
-<body class="<?= e($bodyClass) ?> <?= $isDashboard ? 'dashboard-body' : '' ?>">
+<body class="<?= e($bodyClass) ?> <?= $isDashboard ? 'dashboard-body' : 'public-site' ?>">
 <?php if (!$isDashboard): ?>
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNav">
     <div class="container">
@@ -57,12 +58,15 @@ $isDashboard = $isDashboard ?? false;
                     <a href="<?= url('auth/logout') ?>" class="btn btn-gold btn-sm">Logout</a>
                 <?php else: ?>
                     <a href="<?= url('auth/login') ?>" class="btn btn-outline-light btn-sm">Login</a>
-                    <a href="<?= url('book') ?>" class="btn btn-gold btn-sm"><i class="bi bi-calendar-check"></i> Book Now</a>
+                    <a href="<?= url('book') ?>" class="btn btn-gold btn-sm btn-interactive"><i class="bi bi-calendar-check"></i> Book Now</a>
                 <?php endif; ?>
             </div>
         </div>
     </div>
 </nav>
+<div id="pageTransition" class="page-transition" aria-hidden="true"></div>
+<div id="customCursor" class="custom-cursor" aria-hidden="true"><span class="custom-cursor__label"></span></div>
+<main class="public-main">
 <?php endif; ?>
 
 <?php $flash = getFlash(); if ($flash): ?>

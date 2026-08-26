@@ -7,13 +7,14 @@ $selectedPackage = $_GET['package'] ?? '';
 include ROOT_PATH . '/includes/header.php';
 ?>
 
-<section class="hero-section" style="min-height:35vh;">
-    <div class="hero-bg" style="background-image:url('https://images.unsplash.com/photo-1476225420860-9f2d3192a4b9?w=1920&q=80')"></div>
-    <div class="container hero-content text-center">
-        <h1 class="hero-title" data-aos="fade-up">Book Your Event</h1>
-        <p class="hero-subtitle mx-auto" data-aos="fade-up">Instant quotes, live availability, and secure online booking</p>
-    </div>
-</section>
+<?= renderPublicHero(
+    'Book Your Event',
+    'Instant quotes, live availability, and secure online booking.',
+    'Start Planning',
+    'https://images.unsplash.com/photo-1476225420860-9f2d3192a4b9?w=1920&q=80',
+    [],
+    true
+) ?>
 
 <section class="section">
     <div class="container">

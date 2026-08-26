@@ -9,16 +9,31 @@ $items = $pdo->query('
 include ROOT_PATH . '/includes/header.php';
 ?>
 
-<section class="hero-section" style="min-height:40vh;">
-    <div class="hero-bg" style="background-image:url('https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80')"></div>
-    <div class="container hero-content text-center">
-        <h1 class="hero-title" data-aos="fade-up">Our Menu</h1>
-        <p class="hero-subtitle mx-auto" data-aos="fade-up">Exquisite dishes crafted by award-winning chefs</p>
-    </div>
-</section>
+<?= renderPublicHero(
+    'Our Menu',
+    'Exquisite dishes crafted by award-winning chefs — every plate designed to impress.',
+    'Chef-Curated Collection',
+    'https://images.unsplash.com/photo-1504674900247-0877df9cc836?w=1920&q=80',
+    [
+        ['url' => url('book'), 'label' => 'Book Catering', 'icon' => 'calendar-check', 'class' => 'btn-gold btn-lg'],
+        ['url' => url('packages'), 'label' => 'View Packages', 'icon' => 'box-seam', 'class' => 'btn-outline-light btn-lg'],
+    ],
+    true
+) ?>
 
 <section class="section">
     <div class="container">
+        <?php
+        $hasMenuItems = !empty($items);
+        if (!$hasMenuItems): ?>
+            <?= renderPublicEmptyState(
+                'egg-fried',
+                'No menu items available',
+                'Our menu is being updated. Contact us to discuss custom dishes for your event.',
+                url('contact'),
+                'Contact Us'
+            ) ?>
+        <?php else: ?>
         <div class="diet-filters" data-aos="fade-up">
             <button class="diet-filter-btn active" data-filter="all">All Items</button>
             <button class="diet-filter-btn" data-filter="vegetarian">Vegetarian</button>
@@ -31,42 +46,31 @@ include ROOT_PATH . '/includes/header.php';
             $catItems = array_filter($items, fn($i) => $i['category_id'] == $cat['id']);
             if (empty($catItems)) continue;
         ?>
-        <div class="mb-5" data-aos="fade-up">
-            <div class="d-flex align-items-center gap-3 mb-4">
-                <img src="<?= e($cat['image_url']) ?>" alt="" width="60" height="60" class="rounded-circle" style="object-fit:cover">
+        <div class="mb-5">
+            <div class="d-flex align-items-center gap-3 mb-4" data-aos="fade-up">
+                <div class="image-frame" style="width:64px;height:64px;border-radius:50%;flex-shrink:0;">
+                    <img src="<?= e($cat['image_url']) ?>" alt="" width="64" height="64" style="object-fit:cover;height:100%;">
+                </div>
                 <div>
                     <h3 class="mb-0"><?= e($cat['name']) ?></h3>
                     <small class="text-muted"><?= e($cat['description']) ?></small>
                 </div>
             </div>
-            <div class="row g-4">
-                <?php foreach ($catItems as $item): ?>
+            <div class="row g-4 stagger-grid">
+                <?php foreach ($catItems as $i => $item): ?>
                 <div class="col-md-6 col-lg-4 menu-card-item"
-                     data-vegetarian="<?= (int)$item['is_vegetarian'] ?>"
-                     data-vegan="<?= (int)$item['is_vegan'] ?>"
-                     data-halal="<?= (int)$item['is_halal'] ?>"
-                     data-gluten-free="<?= (int)$item['is_gluten_free'] ?>">
-                    <div class="menu-card">
-                        <div class="card-image">
-                            <img src="<?= e($item['image_url']) ?>" alt="<?= e($item['name']) ?>" loading="lazy">
-                        </div>
-                        <div class="card-body-custom">
-                            <div class="d-flex justify-content-between align-items-start">
-                                <h5><?= e($item['name']) ?></h5>
-                                <span class="menu-price"><?= formatMoney((float)$item['price']) ?></span>
-                            </div>
-                            <p class="text-muted small"><?= e($item['description']) ?></p>
-                            <div class="mb-2"><?= getDietaryBadges($item) ?></div>
-                            <?php if ($item['popularity_score'] > 90): ?>
-                            <span class="badge bg-warning text-dark"><i class="bi bi-fire"></i> Popular</span>
-                            <?php endif; ?>
-                        </div>
-                    </div>
+                     data-reveal data-reveal-delay="<?= ($i % 3) * 80 ?>"
+                     data-vegetarian="<?= (int) $item['is_vegetarian'] ?>"
+                     data-vegan="<?= (int) $item['is_vegan'] ?>"
+                     data-halal="<?= (int) $item['is_halal'] ?>"
+                     data-gluten-free="<?= (int) $item['is_gluten_free'] ?>">
+                    <?= renderFoodCard($item, $cat['name']) ?>
                 </div>
                 <?php endforeach; ?>
             </div>
         </div>
         <?php endforeach; ?>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -93,7 +97,7 @@ include ROOT_PATH . '/includes/header.php';
                     </div>
                 </div>
             </div>
-            <button id="aiMenuBtn" class="btn btn-light mt-3">Get AI Menu Suggestion</button>
+            <button id="aiMenuBtn" class="btn btn-light mt-3 btn-interactive">Get AI Menu Suggestion</button>
             <div id="aiMenuResult" class="ai-suggestion"></div>
         </div>
     </div>

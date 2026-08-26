@@ -4,44 +4,57 @@ $packages = $pdo->query('SELECT * FROM packages WHERE is_active = 1 ORDER BY sor
 include ROOT_PATH . '/includes/header.php';
 ?>
 
-<section class="hero-section" style="min-height:45vh;">
-    <div class="hero-bg" style="background-image:url('https://images.unsplash.com/photo-1544025162-d76694265947?w=1920&q=80')"></div>
-    <div class="container hero-content text-center">
-        <h1 class="hero-title" data-aos="fade-up">Catering Packages</h1>
-        <p class="hero-subtitle mx-auto" data-aos="fade-up">From intimate gatherings to grand galas — find the perfect package for your event</p>
-    </div>
-</section>
+<?= renderPublicHero(
+    'Catering Packages',
+    'From intimate gatherings to grand galas — find the perfect package for your event.',
+    'Curated Menus',
+    'https://images.unsplash.com/photo-1544025162-d76694265947?w=1920&q=80',
+    [
+        ['url' => url('book'), 'label' => 'Book a Package', 'icon' => 'calendar-check', 'class' => 'btn-gold btn-lg'],
+    ],
+    true
+) ?>
 
 <section class="section">
     <div class="container">
-        <div class="row g-4">
+        <?php if (empty($packages)): ?>
+            <?= renderPublicEmptyState(
+                'box-seam',
+                'No packages available yet',
+                'Custom catering packages can be arranged for your event size and budget.',
+                url('book'),
+                'Request a Quote'
+            ) ?>
+        <?php else: ?>
+        <div class="row g-4 stagger-grid">
             <?php foreach ($packages as $i => $p):
                 $features = json_decode($p['features'], true) ?: [];
                 $highlight = $p['tier'] === 'gold';
             ?>
-            <div class="col-lg-4 col-md-6" data-aos="fade-up" data-aos-delay="<?= ($i % 3) * 100 ?>">
-                <div class="package-card <?= $highlight ? 'border border-warning border-3' : '' ?>">
+            <div class="col-lg-4 col-md-6" data-reveal data-reveal-delay="<?= ($i % 3) * 90 ?>">
+                <article class="package-card-premium<?= $highlight ? ' border border-warning border-2' : '' ?>">
                     <span class="package-tier"><?= e(strtoupper($p['tier'])) ?></span>
                     <?php if ($highlight): ?><span class="badge bg-warning text-dark position-absolute" style="top:1rem;left:1rem;z-index:2;">Most Popular</span><?php endif; ?>
-                    <div class="card-image">
+                    <div class="package-card-premium__media">
                         <img src="<?= e($p['image_url']) ?>" alt="<?= e($p['name']) ?>" loading="lazy">
                     </div>
-                    <div class="card-body-custom">
+                    <div class="package-card-premium__body">
                         <h4><?= e($p['name']) ?></h4>
-                        <div class="package-price"><?= formatMoney((float)$p['price_per_guest']) ?> <small>/ guest</small></div>
-                        <p class="text-muted small">Min <?= (int)$p['min_guests'] ?> – Max <?= (int)$p['max_guests'] ?> guests</p>
+                        <div class="package-price"><?= formatMoney((float) $p['price_per_guest']) ?> <small>/ guest</small></div>
+                        <p class="text-muted small">Min <?= (int) $p['min_guests'] ?> – Max <?= (int) $p['max_guests'] ?> guests</p>
                         <p><?= e($p['description']) ?></p>
                         <ul class="package-features">
                             <?php foreach ($features as $f): ?>
                             <li><i class="bi bi-check-circle-fill"></i> <?= e($f) ?></li>
                             <?php endforeach; ?>
                         </ul>
-                        <a href="<?= url('book') ?>?package=<?= e($p['slug']) ?>" class="btn btn-gold w-100">Book This Package</a>
+                        <a href="<?= e(url('book') . '?package=' . $p['slug']) ?>" class="btn btn-gold w-100 btn-interactive">Book This Package</a>
                     </div>
-                </div>
+                </article>
             </div>
             <?php endforeach; ?>
         </div>
+        <?php endif; ?>
     </div>
 </section>
 
@@ -58,7 +71,7 @@ include ROOT_PATH . '/includes/header.php';
                         <div class="col-6"><input type="number" id="aiBudget" class="form-control" placeholder="Budget ₵"></div>
                         <div class="col-6"><input type="number" id="aiGuests" class="form-control" placeholder="Guests"></div>
                     </div>
-                    <button id="aiBudgetBtn" class="btn btn-light w-100 mt-2">Get Recommendation</button>
+                    <button id="aiBudgetBtn" class="btn btn-light w-100 mt-2 btn-interactive">Get Recommendation</button>
                 </div>
             </div>
             <div id="aiBudgetResult" class="ai-suggestion"></div>

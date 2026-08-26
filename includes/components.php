@@ -245,3 +245,445 @@ function getUnreadNotificationCount(PDO $pdo, int $userId): int
     $stmt->execute([$userId]);
     return (int) $stmt->fetchColumn();
 }
+
+function getPublicSiteStats(PDO $pdo): array
+{
+    $eventsServed = (int) $pdo->query("SELECT COUNT(*) FROM bookings WHERE status = 'completed'")->fetchColumn();
+    $menuItems = (int) $pdo->query('SELECT COUNT(*) FROM menu_items WHERE is_active = 1')->fetchColumn();
+    $serviceTypes = (int) $pdo->query('SELECT COUNT(*) FROM service_types WHERE is_active = 1')->fetchColumn();
+    $avgRating = round((float) $pdo->query('SELECT COALESCE(AVG(rating), 0) FROM testimonials WHERE is_active = 1')->fetchColumn(), 1);
+
+    return [
+        'events_served' => $eventsServed,
+        'menu_items' => $menuItems,
+        'service_types' => $serviceTypes,
+        'avg_rating' => $avgRating,
+    ];
+}
+
+function getHeroSlideshowImages(PDO $pdo, int $limit = 5): array
+{
+    $images = [];
+    $stmt = $pdo->query('SELECT image_url, title FROM gallery WHERE is_featured = 1 ORDER BY sort_order LIMIT 3');
+    foreach ($stmt->fetchAll() as $row) {
+        $images[] = ['url' => $row['image_url'], 'alt' => $row['title']];
+    }
+    $stmt = $pdo->query('SELECT image_url, name FROM menu_items WHERE is_active = 1 ORDER BY popularity_score DESC LIMIT 3');
+    foreach ($stmt->fetchAll() as $row) {
+        $images[] = ['url' => $row['image_url'], 'alt' => $row['name']];
+    }
+    if (empty($images)) {
+        $images[] = ['url' => 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=80', 'alt' => 'Splendid Catering'];
+    }
+    return array_slice($images, 0, $limit);
+}
+
+function renderCinematicHomeHero(array $siteStats, string $ratingDisplay, array $slideshowImages): string
+{
+    $slidesHtml = '';
+    foreach ($slideshowImages as $i => $slide) {
+        $active = $i === 0 ? ' is-active' : '';
+        $slidesHtml .= '<div class="hero-cinematic__slide' . $active . '" style="background-image:url(\'' . e($slide['url']) . '\')" role="img" aria-label="' . e($slide['alt']) . '"></div>';
+    }
+
+    return '<section class="hero-section hero-section--home hero-cinematic">
+        <div class="hero-cinematic__slides" data-cinematic-hero>' . $slidesHtml . '</div>
+        <div class="hero-cinematic__overlay" aria-hidden="true"></div>
+        <div class="hero-glow hero-glow--left" aria-hidden="true"></div>
+        <div class="hero-glow hero-glow--right" aria-hidden="true"></div>
+        <div class="container hero-content">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <div class="hero-animate hero-animate--cinematic">
+                        <p class="hero-eyebrow">Premium Catering · Accra, Ghana</p>
+                        <h1 class="hero-title hero-title--editorial">Crafting <em>Extraordinary</em> Culinary Experiences</h1>
+                        <p class="hero-subtitle">Chef-crafted menus, seamless booking, and flawless execution for weddings, corporate events, and celebrations worth remembering.</p>
+                        <div class="d-flex flex-wrap gap-3 hero-actions">
+                            <a href="' . e(url('book')) . '" class="btn btn-gold btn-lg btn-interactive btn-arrow"><i class="bi bi-calendar-check"></i> Book Your Event</a>
+                            <a href="' . e(url('menu')) . '" class="btn btn-outline-light btn-lg btn-interactive btn-arrow">Explore Menu <i class="bi bi-arrow-right"></i></a>
+                        </div>
+                        <div class="hero-stats">
+                            <div class="hero-stat"><strong data-counter="' . (int) $siteStats['events_served'] . '" data-counter-suffix="+">0</strong><span>Events Served</span></div>
+                            <div class="hero-stat"><strong>' . e($ratingDisplay) . '</strong><span>Client Rating</span></div>
+                            <div class="hero-stat"><strong data-counter="' . (int) $siteStats['service_types'] . '">0</strong><span>Service Types</span></div>
+                            <div class="hero-stat"><strong data-counter="' . (int) $siteStats['menu_items'] . '" data-counter-suffix="+">0</strong><span>Menu Items</span></div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-5 d-none d-lg-block">
+                    <div class="ai-panel mt-4" data-mask-reveal data-reveal-delay="300">
+                        <h4><i class="bi bi-robot"></i> AI Event Planner</h4>
+                        <p class="mb-3 opacity-75">Get instant recommendations for your event</p>
+                        <div class="row g-2">
+                            <div class="col-6"><input type="number" id="aiBudget" class="form-control" placeholder="Budget (₵)"></div>
+                            <div class="col-6"><input type="number" id="aiGuests" class="form-control" placeholder="Guests"></div>
+                        </div>
+                        <button id="aiBudgetBtn" class="btn btn-light btn-sm mt-2 w-100 btn-interactive">Get AI Recommendation</button>
+                        <div id="aiBudgetResult" class="ai-suggestion"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="hero-cinematic__scroll" aria-hidden="true"><span></span></div>
+    </section>';
+}
+
+function renderPublicEmptyState(string $icon, string $title, string $message, ?string $actionUrl = null, ?string $actionLabel = null): string
+{
+    return '<div class="public-empty-state">' . renderEmptyState($icon, $title, $message, $actionUrl, $actionLabel) . '</div>';
+}
+
+function renderFoodShowcase(PDO $pdo): string
+{
+    $items = $pdo->query('
+        SELECT m.*, c.name AS category_name
+        FROM menu_items m
+        JOIN menu_categories c ON m.category_id = c.id
+        WHERE m.is_active = 1
+        ORDER BY m.popularity_score DESC
+        LIMIT 5
+    ')->fetchAll();
+
+    if (empty($items)) {
+        return '<section class="section food-showcase section--warm" id="food-showcase">
+            <div class="container">
+                ' . renderSectionHeader('Signature Dishes', 'Food That Tells a Story', 'Chef-crafted plates designed to impress every guest at your table') . '
+                ' . renderPublicEmptyState(
+                    'egg-fried',
+                    'Menu items coming soon',
+                    'Our chefs are finalizing the menu. Contact us for custom catering in the meantime.',
+                    url('contact'),
+                    'Contact Us'
+                ) . '
+            </div>
+        </section>';
+    }
+
+    $featured = $items[0];
+    $secondary = array_slice($items, 1, 4);
+
+    $secondaryHtml = '';
+    foreach ($secondary as $i => $item) {
+        $secondaryHtml .= '<figure class="food-showcase__thumb" data-parallax-layer="' . ($i % 2 === 0 ? '0.06' : '-0.04') . '" data-mask-reveal data-reveal-delay="' . ($i * 100) . '">
+            <img src="' . e($item['image_url']) . '" alt="' . e($item['name']) . '" loading="lazy">
+            <figcaption>' . e($item['name']) . '</figcaption>
+        </figure>';
+    }
+
+    $gridHtml = $secondaryHtml !== ''
+        ? '<div class="food-showcase__grid">' . $secondaryHtml . '</div>'
+        : '';
+
+    return '<section class="section food-showcase" id="food-showcase">
+        <div class="container">
+            <div class="row g-5 align-items-center">
+                <div class="col-lg-6">
+                    <div class="food-showcase__featured" data-parallax-layer="0.08">
+                        <div class="food-showcase__featured-mask" data-mask-reveal>
+                            <img src="' . e($featured['image_url']) . '" alt="' . e($featured['name']) . '" loading="lazy">
+                        </div>
+                        <div class="food-showcase__badge">' . e($featured['category_name']) . '</div>
+                    </div>
+                    ' . $gridHtml . '
+                </div>
+                <div class="col-lg-6">
+                    <div class="food-showcase__copy" data-reveal>
+                        <span class="section-label">Signature Dishes</span>
+                        <h2 class="section-title section-title--editorial">Food That Tells a Story</h2>
+                        <p class="section-subtitle text-start">Every plate is crafted by award-winning chefs using premium ingredients — from West African classics to international fine dining.</p>
+                        <p class="text-muted">Featured: <strong>' . e($featured['name']) . '</strong> — ' . e($featured['description']) . '</p>
+                        <div class="d-flex flex-wrap gap-3 mt-4">
+                            <a href="' . e(url('menu')) . '" class="btn btn-gold btn-interactive btn-arrow">View Full Menu <i class="bi bi-arrow-right"></i></a>
+                            <a href="' . e(url('book')) . '" class="btn btn-outline-gold btn-interactive">Book Catering</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>';
+}
+
+function serviceIconClass(string $icon): string
+{
+    $name = str_starts_with($icon, 'bi-') ? substr($icon, 3) : $icon;
+    return 'bi bi-' . $name;
+}
+
+function renderServiceEditorialTile(array $service, int $index = 0): string
+{
+    $delay = ($index % 3) * 90;
+    return '<div class="col-md-6 col-lg-4">
+        <a href="' . e(url('book') . '?service=' . $service['slug']) . '" class="service-tile" data-mask-reveal data-reveal-delay="' . $delay . '" data-cursor-label="Explore">
+            <div class="service-tile__media">
+                <img src="' . e($service['image_url']) . '" alt="' . e($service['name']) . '" loading="lazy">
+            </div>
+            <div class="service-tile__overlay">
+                <span class="service-tile__icon"><i class="' . e(serviceIconClass($service['icon'])) . '"></i></span>
+                <h3>' . e($service['name']) . '</h3>
+                <p>' . e(substr($service['description'], 0, 120)) . '…</p>
+                <span class="service-tile__cta">Request Quote <i class="bi bi-arrow-right"></i></span>
+            </div>
+        </a>
+    </div>';
+}
+
+function renderCinematicCta(string $bgImage, string $title, string $subtitle): string
+{
+    return '<section class="cta-cinematic" data-parallax-section>
+        <div class="cta-cinematic__bg" data-cinematic-cta style="background-image:url(\'' . e($bgImage) . '\')"></div>
+        <div class="cta-cinematic__overlay"></div>
+        <div class="container position-relative text-center" data-reveal>
+            <h2 class="cta-cinematic__title">' . e($title) . '</h2>
+            <p class="cta-cinematic__subtitle">' . e($subtitle) . '</p>
+            <div class="d-flex flex-wrap justify-content-center gap-3">
+                <a href="' . e(url('book')) . '" class="btn btn-gold btn-lg btn-interactive btn-arrow"><i class="bi bi-calendar-check"></i> Book Your Event</a>
+                <a href="' . e(url('contact')) . '" class="btn btn-outline-light btn-lg btn-interactive">Contact Us</a>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderSectionHeader(string $label, string $title, ?string $subtitle = null, string $class = 'section-header-premium'): string
+{
+    $sub = $subtitle ? '<p class="section-subtitle">' . e($subtitle) . '</p>' : '';
+    return '<div class="' . e($class) . '" data-reveal data-reveal-type="title">
+        <span class="section-label">' . e($label) . '</span>
+        <h2 class="section-title section-title--editorial">' . e($title) . '</h2>
+        ' . $sub . '
+    </div>';
+}
+
+function renderPublicHero(
+    string $title,
+    ?string $subtitle = null,
+    ?string $badge = null,
+    ?string $bgImage = null,
+    array $actions = [],
+    bool $centered = false,
+    string $size = 'compact'
+): string {
+    $bg = $bgImage ?: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=80';
+    $sizeClass = $size === 'home' ? 'hero-section--home' : 'hero-section--compact';
+    $alignClass = $centered ? ' text-center' : '';
+    $subtitleClass = $centered ? ' mx-auto' : '';
+
+    $badgeHtml = $badge ? '<div class="hero-badge"><i class="bi bi-stars"></i> ' . e($badge) . '</div>' : '';
+    $actionsHtml = '';
+    foreach ($actions as $action) {
+        $class = ($action['class'] ?? 'btn-outline-light btn-lg') . ' btn-interactive';
+        $icon = !empty($action['icon']) ? '<i class="bi bi-' . e($action['icon']) . '"></i> ' : '';
+        $actionsHtml .= '<a href="' . e($action['url']) . '" class="btn ' . e($class) . '">' . $icon . e($action['label']) . '</a>';
+    }
+    $actionsBlock = $actionsHtml ? '<div class="d-flex flex-wrap gap-3 hero-actions">' . $actionsHtml . '</div>' : '';
+
+    return '<section class="hero-section ' . e($sizeClass) . ' hero-cinematic hero-cinematic--page">
+        <div class="hero-cinematic__slides" data-cinematic-hero>
+            <div class="hero-cinematic__slide is-active" style="background-image:url(\'' . e($bg) . '\')"></div>
+        </div>
+        <div class="hero-cinematic__overlay" aria-hidden="true"></div>
+        <div class="container hero-content' . $alignClass . '">
+            <div class="hero-animate hero-animate--cinematic' . ($centered ? ' mx-auto' : '') . '" style="' . ($centered ? 'max-width:760px;' : '') . '">
+                ' . ($badge ? '<p class="hero-eyebrow">' . e($badge) . '</p>' : '') . '
+                <h1 class="hero-title hero-title--editorial">' . $title . '</h1>
+                ' . ($subtitle ? '<p class="hero-subtitle' . $subtitleClass . '">' . e($subtitle) . '</p>' : '') . '
+                ' . $actionsBlock . '
+            </div>
+        </div>
+    </section>';
+}
+
+function renderFoodCard(array $item, ?string $categoryName = null, bool $showBookBtn = true): string
+{
+    $category = $categoryName ?: ($item['category_name'] ?? 'Menu');
+    $bookBtn = $showBookBtn
+        ? '<a href="' . e(url('book')) . '" class="food-card__order btn btn-gold btn-sm btn-interactive"><i class="bi bi-calendar-check"></i> Book Catering</a>'
+        : '';
+    $popular = ((int) ($item['popularity_score'] ?? 0) > 90)
+        ? '<span class="food-card__popular"><i class="bi bi-fire"></i> Popular</span>'
+        : '';
+
+    return '<article class="food-card food-card--editorial" data-mask-reveal>
+        <div class="food-card__media">
+            <img src="' . e($item['image_url']) . '" alt="' . e($item['name']) . '" loading="lazy">
+            <div class="food-card__overlay">
+                ' . $bookBtn . '
+            </div>
+            <span class="food-card__category">' . e($category) . '</span>
+            ' . $popular . '
+        </div>
+        <div class="food-card__body">
+            <div class="food-card__head">
+                <h5>' . e($item['name']) . '</h5>
+                <span class="food-card__price">' . formatMoney((float) $item['price']) . '</span>
+            </div>
+            <p class="food-card__desc">' . e($item['description']) . '</p>
+            <div class="food-card__footer">' . getDietaryBadges($item) . '</div>
+        </div>
+    </article>';
+}
+
+function renderServiceCardPremium(array $service, int $delay = 0): string
+{
+    static $index = 0;
+    $html = renderServiceEditorialTile($service, $index);
+    $index++;
+    return $html;
+}
+
+function renderTestimonialSlide(array $testimonial, bool $active = false): string
+{
+    $activeClass = $active ? ' is-active' : '';
+    return '<div class="testimonial-carousel__slide' . $activeClass . '">
+        <article class="testimonial-card-premium">
+            ' . renderStars((int) $testimonial['rating']) . '
+            <p class="testimonial-quote">' . e($testimonial['quote']) . '</p>
+            <div class="d-flex align-items-center gap-3">
+                <img src="' . e($testimonial['image_url']) . '" alt="" class="rounded-circle" width="52" height="52" style="object-fit:cover">
+                <div>
+                    <strong>' . e($testimonial['customer_name']) . '</strong>
+                    <small class="d-block text-muted">' . e($testimonial['event_type']) . '</small>
+                </div>
+            </div>
+        </article>
+    </div>';
+}
+
+function renderHomeAboutStrip(PDO $pdo): string
+{
+    $content = $pdo->query("SELECT content FROM website_content WHERE page_key = 'about'")->fetchColumn();
+    if (!$content) {
+        return '';
+    }
+
+    $galleryImage = $pdo->query('SELECT image_url FROM gallery WHERE is_featured = 1 ORDER BY sort_order LIMIT 1')->fetchColumn()
+        ?: $pdo->query('SELECT image_url FROM menu_items WHERE is_active = 1 ORDER BY popularity_score DESC LIMIT 1')->fetchColumn();
+    if (!$galleryImage) {
+        return '';
+    }
+
+    $kitchenImage = $pdo->query('SELECT image_url FROM menu_items WHERE is_active = 1 ORDER BY popularity_score DESC LIMIT 1 OFFSET 1')->fetchColumn()
+        ?: $galleryImage;
+    $snippet = mb_strlen($content) > 280 ? mb_substr($content, 0, 277) . '…' : $content;
+
+    return '<section class="section section--warm home-about-strip">
+        <div class="container">
+            <div class="about-editorial__grid">
+                <div class="about-editorial__visual" data-parallax-layer="0.05">
+                    <div class="about-editorial__main" data-mask-reveal>
+                        <img src="' . e($galleryImage) . '" alt="Splendid Catering event" loading="lazy">
+                    </div>
+                    <div class="about-editorial__float" data-parallax-layer="-0.06" data-mask-reveal data-reveal-delay="120">
+                        <img src="' . e($kitchenImage) . '" alt="Chef preparation" loading="lazy">
+                    </div>
+                </div>
+                <div class="about-editorial__content">
+                    <div data-reveal>
+                        <span class="section-label">Our Story</span>
+                        <h2 class="section-title section-title--editorial">Crafted With Passion, Served With Pride</h2>
+                        <p class="lead-text">' . e($snippet) . '</p>
+                    </div>
+                    <a href="' . e(url('about')) . '" class="btn btn-outline-gold btn-interactive btn-arrow mt-4" data-reveal data-reveal-delay="120">Read Our Story <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderHomeMenuSpecialties(PDO $pdo, int $limit = 4): string
+{
+    $limit = max(1, min(8, $limit));
+    $items = $pdo->query('
+        SELECT m.*, c.name AS category_name
+        FROM menu_items m
+        JOIN menu_categories c ON m.category_id = c.id
+        WHERE m.is_active = 1
+        ORDER BY m.popularity_score DESC
+        LIMIT ' . $limit . '
+    ')->fetchAll();
+
+    $header = renderSectionHeader('From Our Kitchen', 'Menu Highlights', 'Popular dishes loved by our clients');
+
+    if (empty($items)) {
+        return '<section class="section">
+            <div class="container">
+                ' . $header . '
+                ' . renderPublicEmptyState(
+                    'egg-fried',
+                    'No menu items available yet',
+                    'Check back soon or contact us to discuss a custom menu for your event.',
+                    url('book'),
+                    'Book Catering'
+                ) . '
+            </div>
+        </section>';
+    }
+
+    $cards = '';
+    foreach ($items as $i => $item) {
+        $cards .= '<div class="col-md-6 col-lg-3" data-reveal data-reveal-delay="' . ($i * 70) . '">' . renderFoodCard($item) . '</div>';
+    }
+
+    return '<section class="section">
+        <div class="container">
+            ' . $header . '
+            <div class="row g-4 stagger-grid">' . $cards . '</div>
+            <div class="text-center mt-5" data-reveal>
+                <a href="' . e(url('menu')) . '" class="btn btn-gold btn-interactive btn-arrow">Explore Full Menu <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderHomeGalleryPreview(PDO $pdo, int $limit = 4): string
+{
+    $limit = max(1, min(8, $limit));
+    $items = $pdo->query('SELECT * FROM gallery ORDER BY is_featured DESC, sort_order LIMIT ' . $limit)->fetchAll();
+    $header = renderSectionHeader('Gallery', 'Moments Worth Savoring', 'A glimpse into our events, tablescapes, and culinary artistry');
+
+    if (empty($items)) {
+        return '<section class="section section-alt section--gallery-preview">
+            <div class="container">
+                ' . $header . '
+                ' . renderPublicEmptyState(
+                    'images',
+                    'Gallery updates coming soon',
+                    'Event photos will appear here as we capture more celebrations.',
+                    url('book'),
+                    'Book Your Event'
+                ) . '
+            </div>
+        </section>';
+    }
+
+    $grid = '<div class="gallery-grid gallery-grid--preview stagger-grid">';
+    foreach ($items as $i => $g) {
+        $grid .= '<div class="gallery-item" data-reveal data-reveal-delay="' . ($i * 60) . '"
+                 data-lightbox
+                 data-src="' . e($g['image_url']) . '"
+                 data-title="' . e($g['title']) . '"
+                 data-category="' . e($g['category']) . '"
+                 data-cursor-label="View">
+            <article class="gallery-card-premium">
+                <div class="gallery-card-premium__media">
+                    <img src="' . e($g['image_url']) . '" alt="' . e($g['title']) . '" loading="lazy">
+                </div>
+                <div class="gallery-card-premium__overlay">
+                    <h6>' . e($g['title']) . '</h6>
+                    <small class="text-white-50">' . e($g['category']) . '</small>
+                </div>
+                <span class="gallery-card-premium__zoom" aria-hidden="true"><i class="bi bi-zoom-in"></i></span>
+            </article>
+        </div>';
+    }
+    $grid .= '</div>';
+
+    return '<section class="section section-alt section--gallery-preview">
+        <div class="container">
+            ' . $header . '
+            ' . $grid . '
+            <div class="text-center mt-4" data-reveal>
+                <a href="' . e(url('gallery')) . '" class="btn btn-outline-gold btn-interactive btn-arrow">View Full Gallery <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>';
+}

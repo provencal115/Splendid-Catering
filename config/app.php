@@ -13,6 +13,25 @@ return [
     'quotation_valid_days' => 14,
     'support_email' => 'hello@splendidcaterery.com',
     'support_phone' => '+233 24 000 0000',
+    'business' => [
+        'address' => '14 Independence Avenue, Accra, Ghana',
+        'latitude' => 5.5774737,
+        'longitude' => -0.1873671,
+        'hours' => 'Mon–Sat: 8AM – 8PM',
+    ],
+    /*
+     * Leadership / founder profiles for the About Us page.
+     * Add real entries only — leave empty until verified information is available.
+     *
+     * 'name'      => required to display
+     * 'title'     => required to display
+     * 'bio'       => required to display
+     * 'image'     => required (local path or URL)
+     * 'quote'     => optional
+     * 'linkedin'  => optional
+     * 'instagram' => optional
+     */
+    'leadership' => [],
     'google_maps_api_key' => getenv('GOOGLE_MAPS_API_KEY') ?: '',
     'sms_enabled' => false,
     'email_enabled' => true,

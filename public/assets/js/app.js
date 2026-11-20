@@ -66,6 +66,7 @@ function initTheme() {
 
     document.getElementById('themeToggle')?.addEventListener('click', toggle);
     document.getElementById('themeTogglePublic')?.addEventListener('click', toggle);
+    document.getElementById('themeToggleAuth')?.addEventListener('click', toggle);
 
     document.addEventListener('themechange', () => {
         if (typeof window.refreshDashboardCharts === 'function') {
@@ -351,6 +352,11 @@ function initAIPanels() {
 function initPublicSite() {
     if (document.body.classList.contains('dashboard-body')) return;
 
+    if (document.body.classList.contains('auth-page-body')) {
+        initAuthPage();
+        return;
+    }
+
     const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
     if (!reducedMotion) {
         document.documentElement.classList.add('js-animations');
@@ -358,6 +364,7 @@ function initPublicSite() {
 
     revealElementsInViewport();
 
+    initHeroVideo();
     initCinematicHero();
     initParallaxLayers();
     initMaskReveals();
@@ -365,12 +372,15 @@ function initPublicSite() {
     initAnimatedCounters();
     initGalleryLightbox();
     initGalleryFilters();
+    initGalleryReveal();
     initTestimonialCarousel();
     initInteractiveButtons();
     initFooterReveal();
     initPageTransition();
     initCustomCursor();
     initMobileNavEnhance();
+    initBusinessMaps();
+    initHomeGalleryFeatured();
 
     if (!reducedMotion) {
         window.setTimeout(forceRevealAllHidden, 3000);
@@ -400,6 +410,45 @@ function forceRevealAllHidden() {
     document.querySelectorAll('[data-reveal]:not(.is-visible), [data-mask-reveal]:not(.is-visible), .footer-reveal:not(.is-visible)').forEach((el) => {
         el.classList.add('is-visible');
     });
+}
+
+function initHeroVideo() {
+    const hero = document.querySelector('.hero-cinematic--video');
+    const video = document.querySelector('[data-hero-video]');
+    if (!hero) return;
+
+    const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const narrowMobile = window.matchMedia('(max-width: 767.98px)').matches;
+    const saveData = navigator.connection?.saveData === true;
+
+    if (narrowMobile || saveData) {
+        hero.classList.add('hero-cinematic--mobile-poster');
+    }
+
+    if (!video || reducedMotion) {
+        hero.classList.add('is-poster-only', 'is-video-paused');
+        return;
+    }
+
+    const showPoster = () => {
+        hero.classList.add('is-video-paused');
+    };
+
+    video.addEventListener('error', showPoster);
+    video.addEventListener('stalled', showPoster);
+
+    const tryPlay = () => {
+        const playPromise = video.play();
+        if (playPromise && typeof playPromise.then === 'function') {
+            playPromise.catch(showPoster);
+        }
+    };
+
+    if (video.readyState >= 2) {
+        tryPlay();
+    } else {
+        video.addEventListener('loadeddata', tryPlay, { once: true });
+    }
 }
 
 function initCinematicHero() {
@@ -675,6 +724,26 @@ function initGalleryFilters() {
     });
 }
 
+function initGalleryReveal() {
+    const items = document.querySelectorAll('[data-gallery-reveal]');
+    if (!items.length) return;
+
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+        items.forEach(el => el.classList.add('is-revealed'));
+        return;
+    }
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('is-revealed');
+            observer.unobserve(entry.target);
+        });
+    }, { threshold: 0.12, rootMargin: '40px 0px 40px 0px' });
+
+    items.forEach(el => observer.observe(el));
+}
+
 function initTestimonialCarousel() {
     const carousel = document.querySelector('[data-testimonial-carousel]');
     if (!carousel) return;
@@ -763,7 +832,7 @@ function initTestimonialCarousel() {
 function initInteractiveButtons() {
     document.querySelectorAll('form').forEach(form => {
         form.addEventListener('submit', () => {
-            const btn = form.querySelector('[type="submit"].btn-interactive, [type="submit"].btn-gold');
+            const btn = form.querySelector('[type="submit"].btn-interactive, [type="submit"].btn-gold, [type="submit"].auth-submit');
             if (btn && !btn.classList.contains('is-loading')) {
                 btn.classList.add('is-loading');
                 btn.dataset.originalHtml = btn.innerHTML;
@@ -771,6 +840,295 @@ function initInteractiveButtons() {
             }
         });
     });
+}
+
+function initAuthPage() {
+    document.querySelectorAll('[data-password-toggle]').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const input = document.querySelector(btn.dataset.passwordToggle);
+            if (!input) return;
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            const icon = btn.querySelector('i');
+            if (icon) {
+                icon.classList.toggle('bi-eye', !show);
+                icon.classList.toggle('bi-eye-slash', show);
+            }
+            btn.setAttribute('aria-label', show ? 'Hide password' : 'Show password');
+        });
+    });
+
+    const strengthInput = document.querySelector('[data-password-strength]');
+    const strengthWrap = document.querySelector('[data-strength-bar]');
+    if (strengthInput && strengthWrap) {
+        const bar = strengthWrap.querySelector('span');
+        const levels = ['', 'is-weak', 'is-fair', 'is-good', 'is-strong'];
+        const widths = ['0%', '25%', '50%', '75%', '100%'];
+
+        const scorePassword = (pwd) => {
+            let score = 0;
+            if (pwd.length >= 6) score++;
+            if (pwd.length >= 10) score++;
+            if (/[A-Z]/.test(pwd) && /[a-z]/.test(pwd)) score++;
+            if (/\d/.test(pwd)) score++;
+            if (/[^A-Za-z0-9]/.test(pwd)) score++;
+            return Math.min(score, 4);
+        };
+
+        strengthInput.addEventListener('input', () => {
+            const score = scorePassword(strengthInput.value);
+            strengthWrap.className = 'auth-password-strength ' + (levels[score] || '');
+            if (bar) bar.style.width = widths[score];
+        });
+    }
+
+    const matchInput = document.querySelector('[data-password-match]');
+    const matchHint = document.querySelector('[data-match-hint]');
+    if (matchInput && matchHint) {
+        const target = document.querySelector(matchInput.dataset.passwordMatch);
+        const validate = () => {
+            if (!matchInput.value) {
+                matchHint.textContent = '';
+                matchInput.classList.remove('is-invalid', 'is-valid');
+                return;
+            }
+            const matches = target && matchInput.value === target.value;
+            matchInput.classList.toggle('is-valid', matches);
+            matchInput.classList.toggle('is-invalid', !matches);
+            matchHint.textContent = matches ? 'Passwords match' : 'Passwords do not match';
+            matchHint.className = 'auth-field-hint small ' + (matches ? 'text-success' : 'text-danger');
+        };
+        matchInput.addEventListener('input', validate);
+        target?.addEventListener('input', validate);
+    }
+
+    document.querySelectorAll('[data-auth-form]').forEach(form => {
+        form.addEventListener('submit', (e) => {
+            if (form.hasAttribute('data-auth-register')) {
+                const password = form.querySelector('[data-password-strength]');
+                const confirm = form.querySelector('[data-password-match]');
+                if (password && confirm && password.value !== confirm.value) {
+                    e.preventDefault();
+                    confirm.classList.add('is-invalid');
+                    if (matchHint) {
+                        matchHint.textContent = 'Passwords do not match';
+                        matchHint.className = 'auth-field-hint small text-danger';
+                    }
+                    return;
+                }
+            }
+            const btn = form.querySelector('.auth-submit');
+            if (btn && !btn.classList.contains('is-loading')) {
+                btn.classList.add('is-loading');
+                btn.disabled = true;
+            }
+        });
+    });
+
+    initInteractiveButtons();
+}
+
+function initHomeGalleryFeatured() {
+    const featured = document.querySelector('[data-home-gallery-featured]');
+    if (!featured) return;
+
+    let slides = [];
+    try {
+        slides = JSON.parse(featured.dataset.slides || '[]');
+    } catch (e) {
+        return;
+    }
+
+    if (slides.length <= 1 || window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    const img = featured.querySelector('.gallery-editorial__featured-img');
+    const titleEl = featured.querySelector('.gallery-editorial__featured-overlay h3');
+    const catEl = featured.querySelector('.gallery-editorial__featured-overlay p');
+    if (!img) return;
+
+    let index = 0;
+    const fadeDuration = 900;
+
+    const transition = () => {
+        index = (index + 1) % slides.length;
+        const next = slides[index];
+        img.classList.add('is-fading');
+
+        window.setTimeout(() => {
+            img.src = next.src;
+            img.alt = next.title || 'Gallery image';
+            featured.dataset.src = next.src;
+            featured.dataset.title = next.title || '';
+            featured.dataset.category = next.category || '';
+            if (titleEl) titleEl.textContent = next.title || '';
+            if (catEl) catEl.textContent = next.category || '';
+            img.classList.remove('is-fading');
+        }, fadeDuration);
+    };
+
+    window.setInterval(transition, 8000);
+}
+
+const businessMapInstances = new Map();
+
+function loadLeafletAssets() {
+    if (window.L) {
+        return Promise.resolve(window.L);
+    }
+
+    if (window.__leafletLoadPromise) {
+        return window.__leafletLoadPromise;
+    }
+
+    window.__leafletLoadPromise = new Promise((resolve, reject) => {
+        if (!document.querySelector('link[data-leaflet-css]')) {
+            const link = document.createElement('link');
+            link.rel = 'stylesheet';
+            link.href = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css';
+            link.setAttribute('data-leaflet-css', '1');
+            document.head.appendChild(link);
+        }
+
+        const script = document.createElement('script');
+        script.src = 'https://unpkg.com/leaflet@1.9.4/dist/leaflet.js';
+        script.async = true;
+        script.onload = () => resolve(window.L);
+        script.onerror = () => reject(new Error('Failed to load map library'));
+        document.body.appendChild(script);
+    });
+
+    return window.__leafletLoadPromise;
+}
+
+function getMapTileLayer(L, theme) {
+    if (theme === 'dark') {
+        return L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', {
+            attribution: '&copy; OpenStreetMap &copy; CARTO',
+            subdomains: 'abcd',
+            maxZoom: 19,
+        });
+    }
+
+    return L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors',
+        maxZoom: 19,
+    });
+}
+
+function buildMapPopupContent(location) {
+    const phoneHtml = location.phone
+        ? `<div class="location-map-popup__phone"><a href="tel:${escapeHtml(String(location.phone).replace(/\s+/g, ''))}">${escapeHtml(location.phone)}</a></div>`
+        : '';
+
+    return `<div class="location-map-popup">
+        <div class="location-map-popup__title">${escapeHtml(location.name)}</div>
+        <div class="location-map-popup__address">${escapeHtml(location.address)}</div>
+        ${phoneHtml}
+    </div>`;
+}
+
+function createBusinessMarker(L, location) {
+    const icon = L.divIcon({
+        className: 'location-marker',
+        html: '<div class="location-marker__pin"><i class="bi bi-cup-hot-fill"></i></div>',
+        iconSize: [44, 44],
+        iconAnchor: [22, 44],
+        popupAnchor: [0, -46],
+    });
+
+    const marker = L.marker([location.latitude, location.longitude], { icon });
+    marker.bindPopup(buildMapPopupContent(location), {
+        className: 'location-map-popup',
+        closeButton: true,
+        maxWidth: 280,
+    });
+
+    return marker;
+}
+
+function initSingleBusinessMap(L, wrap) {
+    const mapId = wrap.dataset.mapId;
+    const container = document.getElementById(mapId);
+    if (!container || businessMapInstances.has(mapId)) return;
+
+    let location;
+    try {
+        location = JSON.parse(wrap.dataset.location || '{}');
+    } catch (e) {
+        return;
+    }
+
+    if (!location.latitude || !location.longitude) return;
+
+    const zoom = Number(wrap.dataset.zoom || 15);
+    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+    const map = L.map(container, {
+        scrollWheelZoom: false,
+        zoomControl: true,
+    }).setView([location.latitude, location.longitude], zoom);
+
+    const tileLayer = getMapTileLayer(L, theme);
+    tileLayer.addTo(map);
+
+    const marker = createBusinessMarker(L, location);
+    marker.addTo(map);
+    marker.openPopup();
+
+    businessMapInstances.set(mapId, { map, tileLayer, marker, location, wrap });
+
+    wrap.classList.add('is-loaded');
+
+    const block = wrap.closest('.location-map-block');
+    if (block) block.classList.add('is-visible');
+
+    requestAnimationFrame(() => map.invalidateSize());
+
+    const observer = new IntersectionObserver((entries) => {
+        entries.forEach(entry => {
+            if (entry.isIntersecting) {
+                map.invalidateSize();
+                observer.disconnect();
+            }
+        });
+    }, { threshold: 0.15 });
+
+    observer.observe(wrap);
+}
+
+function updateBusinessMapThemes() {
+    if (!window.L) return;
+
+    const theme = document.documentElement.getAttribute('data-theme') || 'light';
+    businessMapInstances.forEach((instance) => {
+        instance.map.removeLayer(instance.tileLayer);
+        instance.tileLayer = getMapTileLayer(window.L, theme);
+        instance.tileLayer.addTo(instance.map);
+    });
+}
+
+function initBusinessMaps() {
+    const wraps = document.querySelectorAll('[data-business-map]');
+    if (!wraps.length) return;
+
+    loadLeafletAssets()
+        .then((L) => {
+            wraps.forEach(wrap => initSingleBusinessMap(L, wrap));
+
+            if (!window.__businessMapThemeObserver) {
+                window.__businessMapThemeObserver = new MutationObserver(updateBusinessMapThemes);
+                window.__businessMapThemeObserver.observe(document.documentElement, {
+                    attributes: true,
+                    attributeFilter: ['data-theme'],
+                });
+            }
+        })
+        .catch(() => {
+            wraps.forEach(wrap => {
+                wrap.classList.add('is-loaded');
+                const loading = wrap.querySelector('.location-map__loading');
+                if (loading) loading.textContent = 'Map unavailable';
+            });
+        });
 }
 
 function initFooterReveal() {

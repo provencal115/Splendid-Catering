@@ -227,3 +227,125 @@ function roleDashboardUrl(string $role): string
         default => url(),
     };
 }
+
+function getBusinessLocation(): array
+{
+    global $config;
+
+    return [
+        'name' => $config['name'],
+        'address' => $config['business']['address'],
+        'latitude' => (float) $config['business']['latitude'],
+        'longitude' => (float) $config['business']['longitude'],
+        'phone' => $config['support_phone'],
+        'email' => $config['support_email'],
+        'hours' => $config['business']['hours'],
+    ];
+}
+
+function businessDirectionsUrl(?array $location = null): string
+{
+    $loc = $location ?? getBusinessLocation();
+
+    if ($loc['latitude'] && $loc['longitude']) {
+        return 'https://www.google.com/maps/dir/?api=1&destination='
+            . rawurlencode($loc['latitude'] . ',' . $loc['longitude']);
+    }
+
+    return 'https://www.google.com/maps/dir/?api=1&destination=' . rawurlencode($loc['address']);
+}
+
+function resolveMediaUrl(?string $url): string
+{
+    if (!$url) {
+        return '';
+    }
+
+    $url = trim($url);
+    if (preg_match('#^https?://#i', $url) || str_starts_with($url, '//')) {
+        return $url;
+    }
+
+    if (str_starts_with($url, '/')) {
+        return rtrim(BASE_URL, '/') . $url;
+    }
+
+    return asset(ltrim($url, '/'));
+}
+
+function getLeadershipTeam(?PDO $pdo = null): array
+{
+    global $config;
+
+    $team = $config['leadership'] ?? [];
+    if (!is_array($team)) {
+        $team = [];
+    }
+
+    if (empty($team) && $pdo instanceof PDO) {
+        $json = $pdo->query("SELECT content FROM website_content WHERE page_key = 'leadership' LIMIT 1")->fetchColumn();
+        if (is_string($json) && $json !== '') {
+            $decoded = json_decode($json, true);
+            if (is_array($decoded)) {
+                $team = $decoded;
+            }
+        }
+    }
+
+    $team = array_values(array_filter($team, static function ($member): bool {
+        if (!is_array($member)) {
+            return false;
+        }
+
+        return trim($member['name'] ?? '') !== ''
+            && trim($member['title'] ?? '') !== ''
+            && trim($member['bio'] ?? '') !== ''
+            && trim($member['image'] ?? '') !== '';
+    }));
+
+    foreach ($team as &$member) {
+        $member['image'] = resolveMediaUrl($member['image']);
+        $member['featured'] = !empty($member['featured']);
+    }
+    unset($member);
+
+    return $team;
+}
+
+function getAuthHeroImage(PDO $pdo): string
+{
+    $image = $pdo->query('SELECT image_url FROM gallery WHERE is_featured = 1 ORDER BY sort_order LIMIT 1')->fetchColumn()
+        ?: $pdo->query('SELECT image_url FROM menu_items WHERE is_active = 1 ORDER BY popularity_score DESC LIMIT 1')->fetchColumn();
+
+    return resolveMediaUrl($image ?: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1600&q=80');
+}
+
+/**
+ * Home hero video + poster (local assets with database poster fallback).
+ *
+ * Place final files in public/assets/videos/:
+ * - hero-catering.mp4 (required for video playback)
+ * - hero-catering.webm (optional)
+ * - hero-catering-poster.jpg (optional; uses gallery image if missing)
+ */
+function getHomeHeroMedia(PDO $pdo): array
+{
+    $baseDir = ROOT_PATH . '/public/assets/videos';
+    $mp4File = $baseDir . '/hero-catering.mp4';
+    $webmFile = $baseDir . '/hero-catering.webm';
+    $posterFile = $baseDir . '/hero-catering-poster.jpg';
+
+    $dbPoster = $pdo->query('SELECT image_url FROM gallery WHERE is_featured = 1 ORDER BY sort_order LIMIT 1')->fetchColumn()
+        ?: $pdo->query('SELECT image_url FROM menu_items WHERE is_active = 1 ORDER BY popularity_score DESC LIMIT 1')->fetchColumn();
+
+    $posterUrl = file_exists($posterFile)
+        ? asset('videos/hero-catering-poster.jpg')
+        : resolveMediaUrl($dbPoster ?: 'https://images.unsplash.com/photo-1414235077428-338989a2e8c0?w=1920&q=80');
+
+    return [
+        'has_video' => file_exists($mp4File),
+        'mp4' => file_exists($mp4File) ? asset('videos/hero-catering.mp4') : null,
+        'webm' => file_exists($webmFile) ? asset('videos/hero-catering.webm') : null,
+        'poster' => $posterUrl,
+    ];
+}

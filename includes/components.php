@@ -278,53 +278,41 @@ function getHeroSlideshowImages(PDO $pdo, int $limit = 5): array
     return array_slice($images, 0, $limit);
 }
 
-function renderCinematicHomeHero(array $siteStats, string $ratingDisplay, array $slideshowImages): string
+function renderCinematicHomeHero(PDO $pdo, array $siteStats, string $ratingDisplay, array $slideshowImages): string
 {
-    $slidesHtml = '';
-    foreach ($slideshowImages as $i => $slide) {
-        $active = $i === 0 ? ' is-active' : '';
-        $slidesHtml .= '<div class="hero-cinematic__slide' . $active . '" style="background-image:url(\'' . e($slide['url']) . '\')" role="img" aria-label="' . e($slide['alt']) . '"></div>';
+    $media = getHomeHeroMedia($pdo);
+
+    $videoHtml = '';
+    if ($media['has_video']) {
+        $webmSource = $media['webm']
+            ? '<source src="' . e($media['webm']) . '" type="video/webm">'
+            : '';
+        $videoHtml = '<video class="hero-cinematic__video" data-hero-video autoplay muted loop playsinline preload="metadata" poster="' . e($media['poster']) . '" aria-hidden="true">
+            <source src="' . e($media['mp4']) . '" type="video/mp4">
+            ' . $webmSource . '
+        </video>';
     }
 
-    return '<section class="hero-section hero-section--home hero-cinematic">
-        <div class="hero-cinematic__slides" data-cinematic-hero>' . $slidesHtml . '</div>
-        <div class="hero-cinematic__overlay" aria-hidden="true"></div>
-        <div class="hero-glow hero-glow--left" aria-hidden="true"></div>
-        <div class="hero-glow hero-glow--right" aria-hidden="true"></div>
-        <div class="container hero-content">
-            <div class="row align-items-center g-5">
-                <div class="col-lg-7">
-                    <div class="hero-animate hero-animate--cinematic">
-                        <p class="hero-eyebrow">Premium Catering · Accra, Ghana</p>
-                        <h1 class="hero-title hero-title--editorial">Crafting <em>Extraordinary</em> Culinary Experiences</h1>
-                        <p class="hero-subtitle">Chef-crafted menus, seamless booking, and flawless execution for weddings, corporate events, and celebrations worth remembering.</p>
-                        <div class="d-flex flex-wrap gap-3 hero-actions">
-                            <a href="' . e(url('book')) . '" class="btn btn-gold btn-lg btn-interactive btn-arrow"><i class="bi bi-calendar-check"></i> Book Your Event</a>
-                            <a href="' . e(url('menu')) . '" class="btn btn-outline-light btn-lg btn-interactive btn-arrow">Explore Menu <i class="bi bi-arrow-right"></i></a>
-                        </div>
-                        <div class="hero-stats">
-                            <div class="hero-stat"><strong data-counter="' . (int) $siteStats['events_served'] . '" data-counter-suffix="+">0</strong><span>Events Served</span></div>
-                            <div class="hero-stat"><strong>' . e($ratingDisplay) . '</strong><span>Client Rating</span></div>
-                            <div class="hero-stat"><strong data-counter="' . (int) $siteStats['service_types'] . '">0</strong><span>Service Types</span></div>
-                            <div class="hero-stat"><strong data-counter="' . (int) $siteStats['menu_items'] . '" data-counter-suffix="+">0</strong><span>Menu Items</span></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-lg-5 d-none d-lg-block">
-                    <div class="ai-panel mt-4" data-mask-reveal data-reveal-delay="300">
-                        <h4><i class="bi bi-robot"></i> AI Event Planner</h4>
-                        <p class="mb-3 opacity-75">Get instant recommendations for your event</p>
-                        <div class="row g-2">
-                            <div class="col-6"><input type="number" id="aiBudget" class="form-control" placeholder="Budget (₵)"></div>
-                            <div class="col-6"><input type="number" id="aiGuests" class="form-control" placeholder="Guests"></div>
-                        </div>
-                        <button id="aiBudgetBtn" class="btn btn-light btn-sm mt-2 w-100 btn-interactive">Get AI Recommendation</button>
-                        <div id="aiBudgetResult" class="ai-suggestion"></div>
-                    </div>
+    $posterClass = $media['has_video'] ? ' hero-cinematic__poster--under-video' : ' hero-cinematic__poster--active';
+
+    return '<section class="hero-section hero-section--home hero-cinematic hero-cinematic--video" id="home-hero">
+        <div class="hero-cinematic__media" aria-hidden="true">
+            ' . $videoHtml . '
+            <div class="hero-cinematic__poster' . $posterClass . '" data-hero-poster style="background-image:url(\'' . e($media['poster']) . '\')"></div>
+        </div>
+        <div class="hero-cinematic__overlay hero-cinematic__overlay--video" aria-hidden="true"></div>
+        <div class="container hero-content hero-content--video">
+            <div class="hero-animate hero-animate--luxury">
+                <p class="hero-brand-mark"><span class="hero-brand-mark__icon"><i class="bi bi-cup-hot-fill"></i></span> SPLENDID CATERING</p>
+                <h1 class="hero-title hero-title--luxury">Every Occasion Deserves Something Extraordinary.</h1>
+                <p class="hero-subtitle hero-subtitle--luxury">Exceptional catering, beautifully prepared and thoughtfully served.</p>
+                <div class="d-flex flex-wrap gap-3 hero-actions justify-content-center justify-content-lg-start">
+                    <a href="' . e(url('book')) . '" class="btn btn-gold btn-lg btn-interactive btn-arrow px-4">Book Your Event <i class="bi bi-arrow-right"></i></a>
+                    <a href="' . e(url('menu')) . '" class="btn btn-outline-light btn-lg btn-interactive px-4">Explore Our Menu</a>
                 </div>
             </div>
         </div>
-        <div class="hero-cinematic__scroll" aria-hidden="true"><span></span></div>
+        <a href="#about-splendid" class="hero-cinematic__scroll" aria-label="Scroll to content"><span></span></a>
     </section>';
 }
 
@@ -388,7 +376,7 @@ function renderFoodShowcase(PDO $pdo): string
                 </div>
                 <div class="col-lg-6">
                     <div class="food-showcase__copy" data-reveal>
-                        <span class="section-label">Signature Dishes</span>
+                        <span class="section-label">Signature Menu</span>
                         <h2 class="section-title section-title--editorial">Food That Tells a Story</h2>
                         <p class="section-subtitle text-start">Every plate is crafted by award-winning chefs using premium ingredients — from West African classics to international fine dining.</p>
                         <p class="text-muted">Featured: <strong>' . e($featured['name']) . '</strong> — ' . e($featured['description']) . '</p>
@@ -565,7 +553,7 @@ function renderHomeAboutStrip(PDO $pdo): string
         ?: $galleryImage;
     $snippet = mb_strlen($content) > 280 ? mb_substr($content, 0, 277) . '…' : $content;
 
-    return '<section class="section section--warm home-about-strip">
+    return '<section class="section section--warm home-about-strip" id="about-splendid">
         <div class="container">
             <div class="about-editorial__grid">
                 <div class="about-editorial__visual" data-parallax-layer="0.05">
@@ -601,7 +589,7 @@ function renderHomeMenuSpecialties(PDO $pdo, int $limit = 4): string
         LIMIT ' . $limit . '
     ')->fetchAll();
 
-    $header = renderSectionHeader('From Our Kitchen', 'Menu Highlights', 'Popular dishes loved by our clients');
+    $header = renderSectionHeader('Signature Menu', 'Menu Highlights', 'Popular dishes with live pricing from our kitchen catalogue');
 
     if (empty($items)) {
         return '<section class="section">
@@ -634,11 +622,184 @@ function renderHomeMenuSpecialties(PDO $pdo, int $limit = 4): string
     </section>';
 }
 
-function renderHomeGalleryPreview(PDO $pdo, int $limit = 4): string
+function renderHomePackagesPreview(PDO $pdo, int $limit = 3): string
+{
+    $limit = max(1, min(6, $limit));
+    $packages = $pdo->query('SELECT * FROM packages WHERE is_active = 1 ORDER BY sort_order LIMIT ' . $limit)->fetchAll();
+    $header = renderSectionHeader('Packages', 'Catering Packages', 'Per-guest pricing and inclusions from our live package catalogue');
+
+    if (empty($packages)) {
+        return '<section class="section section-alt" id="packages-preview">
+            <div class="container">
+                ' . $header . '
+                ' . renderPublicEmptyState(
+                    'box-seam',
+                    'No packages available yet',
+                    'Custom packages can be arranged for your event. Speak with our team to get started.',
+                    url('book'),
+                    'Request a Quote'
+                ) . '
+            </div>
+        </section>';
+    }
+
+    $cards = '';
+    foreach ($packages as $i => $p) {
+        $features = json_decode($p['features'], true) ?: [];
+        $cards .= '<div class="col-md-6 col-lg-4" data-reveal data-reveal-delay="' . ($i * 100) . '">
+            <article class="package-card-premium package-card-premium--editorial">
+                <span class="package-tier">' . e(ucfirst($p['tier'])) . '</span>
+                <div class="package-card-premium__media">
+                    <img src="' . e($p['image_url']) . '" alt="' . e($p['name']) . '" loading="lazy">
+                    <div class="package-card-premium__hover">
+                        <a href="' . e(url('book') . '?package=' . $p['slug']) . '" class="btn btn-gold btn-interactive">Select Package</a>
+                    </div>
+                </div>
+                <div class="package-card-premium__body">
+                    <h5>' . e($p['name']) . '</h5>
+                    <div class="package-price">' . formatMoney((float) $p['price_per_guest']) . ' <small>/ guest</small></div>
+                    <p class="text-muted small">' . e($p['description']) . '</p>
+                    <ul class="package-features">';
+        foreach (array_slice($features, 0, 3) as $f) {
+            $cards .= '<li><i class="bi bi-check-circle-fill"></i> ' . e($f) . '</li>';
+        }
+        $cards .= '</ul>
+                </div>
+            </article>
+        </div>';
+    }
+
+    return '<section class="section section-alt" id="packages-preview">
+        <div class="container">
+            ' . $header . '
+            <div class="row g-4 justify-content-center stagger-grid">' . $cards . '</div>
+            <div class="text-center mt-4" data-reveal>
+                <a href="' . e(url('packages')) . '" class="btn btn-outline-gold btn-interactive">View All Packages</a>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderHomeOccasionsPreview(PDO $pdo, int $limit = 4): string
 {
     $limit = max(1, min(8, $limit));
+    $services = $pdo->query('SELECT * FROM service_types WHERE is_active = 1 ORDER BY sort_order LIMIT ' . $limit)->fetchAll();
+    $header = renderSectionHeader('Occasions', 'Special Events We Cater', 'Weddings, corporate functions, and private celebrations from our active service list');
+
+    if (empty($services)) {
+        return '';
+    }
+
+    $tiles = '';
+    foreach ($services as $i => $s) {
+        $tiles .= renderServiceEditorialTile($s, $i);
+    }
+
+    return '<section class="section home-occasions" id="occasions">
+        <div class="container">
+            ' . $header . '
+            <div class="row g-4">' . $tiles . '</div>
+            <div class="text-center mt-4" data-reveal>
+                <a href="' . e(url('services')) . '" class="btn btn-gold btn-interactive btn-arrow">All Services <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderWhyChooseUs(PDO $pdo): string
+{
+    $stats = getPublicSiteStats($pdo);
+    $menuCount = (int) $stats['menu_items'];
+    $serviceCount = (int) $stats['service_types'];
+    $eventsCount = (int) $stats['events_served'];
+    $ratingNote = $stats['avg_rating'] > 0
+        ? 'Verified client reviews average ' . number_format($stats['avg_rating'], 1) . ' stars.'
+        : 'Client feedback is published on our testimonials page.';
+
+    $pillars = [
+        [
+            'icon' => 'egg-fried',
+            'title' => 'Live Menu Catalogue',
+            'desc' => $menuCount > 0
+                ? $menuCount . ' active menu items with pricing managed in our system.'
+                : 'Menu items and pricing are managed in our live kitchen catalogue.',
+        ],
+        [
+            'icon' => 'calendar-event',
+            'title' => 'Event Booking Platform',
+            'desc' => 'Online quotes, availability checks, and booking workflows connected to our database.',
+        ],
+        [
+            'icon' => 'people',
+            'title' => 'Multiple Service Lines',
+            'desc' => $serviceCount > 0
+                ? $serviceCount . ' catering service types available for weddings, corporate, and private events.'
+                : 'Catering service types configured for a range of event formats.',
+        ],
+        [
+            'icon' => 'stars',
+            'title' => 'Transparent Operations',
+            'desc' => $eventsCount > 0
+                ? $eventsCount . ' completed bookings on record. ' . $ratingNote
+                : $ratingNote,
+        ],
+    ];
+
+    $cards = '';
+    foreach ($pillars as $i => $p) {
+        $cards .= '<div class="col-md-6 col-lg-3" data-reveal data-reveal-delay="' . ($i * 80) . '">
+            <div class="feature-card feature-card--minimal why-choose-card text-center p-4 h-100">
+                <div class="service-card-premium__icon mx-auto mb-3"><i class="bi bi-' . e($p['icon']) . '"></i></div>
+                <h5 class="mt-1">' . e($p['title']) . '</h5>
+                <p class="text-muted small mb-0">' . e($p['desc']) . '</p>
+            </div>
+        </div>';
+    }
+
+    return '<section class="section section--warm why-choose-section" id="why-choose-us">
+        <div class="container">
+            ' . renderSectionHeader('Why Splendid', 'Why Choose Us', 'Platform capabilities and live data behind every Splendid Catering experience') . '
+            <div class="row g-4 stagger-grid">' . $cards . '</div>
+        </div>
+    </section>';
+}
+
+function renderHomeBookingTeaser(): string
+{
+    $loc = getBusinessLocation();
+
+    return '<section class="section home-booking-teaser" id="book-contact">
+        <div class="container">
+            <div class="home-booking-teaser__panel" data-reveal>
+                <div class="row g-4 align-items-center">
+                    <div class="col-lg-7">
+                        <span class="section-label">Book & Enquire</span>
+                        <h2 class="section-title section-title--editorial mb-3">Start Your Catering Journey</h2>
+                        <p class="text-muted mb-0">Use our online booking wizard for instant quotes, or reach our team directly for consultations. Office hours: <strong>' . e($loc['hours']) . '</strong>.</p>
+                    </div>
+                    <div class="col-lg-5">
+                        <div class="d-flex flex-column flex-sm-row gap-2 justify-content-lg-end">
+                            <a href="' . e(url('book')) . '" class="btn btn-gold btn-lg btn-interactive flex-grow-1"><i class="bi bi-calendar-check"></i> Book Catering</a>
+                            <a href="' . e(url('contact')) . '" class="btn btn-outline-gold btn-lg btn-interactive flex-grow-1"><i class="bi bi-envelope"></i> Contact Us</a>
+                        </div>
+                        <p class="small text-muted mt-3 mb-0 text-lg-end"><i class="bi bi-geo-alt-fill text-gold me-1"></i>' . e($loc['address']) . '</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderHomeGalleryPreview(PDO $pdo, int $limit = 7): string
+{
+    return renderHomeGalleryEditorial($pdo, $limit);
+}
+
+function renderHomeGalleryEditorial(PDO $pdo, int $limit = 7): string
+{
+    $limit = max(5, min(10, $limit));
     $items = $pdo->query('SELECT * FROM gallery ORDER BY is_featured DESC, sort_order LIMIT ' . $limit)->fetchAll();
-    $header = renderSectionHeader('Gallery', 'Moments Worth Savoring', 'A glimpse into our events, tablescapes, and culinary artistry');
+    $header = renderSectionHeader('Gallery', 'Moments Worth Savoring', 'Real events, real food — a visual taste of the Splendid Catering experience');
 
     if (empty($items)) {
         return '<section class="section section-alt section--gallery-preview">
@@ -655,17 +816,454 @@ function renderHomeGalleryPreview(PDO $pdo, int $limit = 4): string
         </section>';
     }
 
-    $grid = '<div class="gallery-grid gallery-grid--preview stagger-grid">';
-    foreach ($items as $i => $g) {
-        $grid .= '<div class="gallery-item" data-reveal data-reveal-delay="' . ($i * 60) . '"
+    $featured = array_shift($items);
+    $featuredSlides = array_slice(
+        array_merge([$featured], array_filter($items, fn($g) => !empty($g['is_featured']))),
+        0,
+        3
+    );
+    $slidesJson = htmlspecialchars(json_encode(array_map(static fn($g) => [
+        'src' => resolveMediaUrl($g['image_url']),
+        'title' => $g['title'],
+        'category' => $g['category'],
+    ], $featuredSlides)), ENT_QUOTES, 'UTF-8');
+
+    $featuredHtml = '<article class="gallery-editorial__featured gallery-fx--ken-burns" data-home-gallery-featured data-slides="' . $slidesJson . '"
+        data-lightbox data-src="' . e(resolveMediaUrl($featured['image_url'])) . '"
+        data-title="' . e($featured['title']) . '" data-category="' . e($featured['category']) . '" data-cursor-label="View">
+        <div class="gallery-editorial__featured-inner">
+            <img src="' . e(resolveMediaUrl($featured['image_url'])) . '" alt="' . e($featured['title']) . '" class="gallery-editorial__featured-img is-active" loading="eager">
+            <div class="gallery-editorial__featured-overlay">
+                <span class="gallery-editorial__label">Featured</span>
+                <h3>' . e($featured['title']) . '</h3>
+                <p>' . e($featured['category']) . '</p>
+                <span class="gallery-editorial__view">View Gallery <i class="bi bi-arrow-right"></i></span>
+            </div>
+        </div>
+    </article>';
+
+    $supportHtml = '';
+    $effects = ['gallery-fx--slow-zoom', '', 'gallery-fx--float', 'gallery-fx--hover', 'gallery-fx--reveal', 'gallery-fx--hover-reveal', ''];
+    foreach (array_slice($items, 0, 6) as $i => $g) {
+        $fx = $effects[$i % count($effects)];
+        $supportHtml .= '<article class="gallery-editorial__item ' . e($fx) . '" data-reveal data-reveal-delay="' . ($i * 50) . '"
+            data-lightbox data-src="' . e(resolveMediaUrl($g['image_url'])) . '"
+            data-title="' . e($g['title']) . '" data-category="' . e($g['category']) . '" data-cursor-label="View">
+            <div class="gallery-editorial__thumb">
+                <img src="' . e(resolveMediaUrl($g['image_url'])) . '" alt="' . e($g['title']) . '" loading="lazy">
+                <div class="gallery-card-premium__overlay">
+                    <h6>' . e($g['title']) . '</h6>
+                    <small class="text-white-50">' . e($g['category']) . '</small>
+                </div>
+            </div>
+        </article>';
+    }
+
+    return '<section class="section section-alt home-gallery-editorial" id="home-gallery">
+        <div class="container">
+            ' . $header . '
+            <div class="gallery-editorial" data-reveal>
+                ' . $featuredHtml . '
+                <div class="gallery-editorial__support">' . $supportHtml . '</div>
+            </div>
+            <div class="text-center mt-4" data-reveal>
+                <a href="' . e(url('gallery')) . '" class="btn btn-outline-gold btn-interactive btn-arrow">Explore Full Gallery <i class="bi bi-arrow-right"></i></a>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderHomeLocationPreview(): string
+{
+    return '<section class="section section--warm home-location-preview" id="visit-us">
+        <div class="container">
+            ' . renderSectionHeader('Visit Us', 'Find Our Location', 'Plan a visit or get directions to our Accra kitchen and event planning team.') . '
+            <div class="row g-4 align-items-stretch">
+                <div class="col-lg-5 d-flex flex-column gap-3">
+                    ' . renderContactInfoCard(null, true) . '
+                    <div data-reveal>' . renderDirectionsButton(null, 'btn btn-gold btn-interactive w-100') . '</div>
+                </div>
+                <div class="col-lg-7">
+                    ' . renderBusinessLocationMap('homeBusinessMap', 'home', 15) . '
+                </div>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderAuthLayout(string $mode, string $formHtml, PDO $pdo): string
+{
+    global $config;
+    $heroImage = getAuthHeroImage($pdo);
+    $isLogin = $mode === 'login';
+    $title = $isLogin ? 'Welcome Back' : 'Create Your Account';
+    $subtitle = $isLogin
+        ? 'Sign in to manage bookings, menus, and your Splendid Catering account.'
+        : 'Join Splendid Catering to book events and manage your celebrations.';
+    $switchLabel = $isLogin ? "Don't have an account?" : 'Already have an account?';
+    $switchUrl = $isLogin ? url('auth/register') : url('auth/login');
+    $switchText = $isLogin ? 'Create Account' : 'Sign In';
+
+    return '<div class="auth-split">
+        <div class="auth-split__visual" aria-hidden="true">
+            <div class="auth-split__visual-bg" data-auth-ken-burns style="background-image:url(\'' . e($heroImage) . '\')"></div>
+            <div class="auth-split__visual-overlay"></div>
+            <div class="auth-split__brand">
+                <a href="' . e(url()) . '" class="auth-split__logo">
+                    <span class="brand-icon"><i class="bi bi-cup-hot-fill"></i></span>
+                    <span><strong>Splendid</strong> Catering</span>
+                </a>
+                <p class="auth-split__tagline">' . e($config['tagline']) . '</p>
+            </div>
+        </div>
+        <div class="auth-split__panel">
+            <div class="auth-split__panel-inner">
+                <button type="button" class="btn btn-sm btn-outline-secondary auth-split__theme" id="themeToggleAuth" aria-label="Toggle theme">
+                    <i class="bi bi-sun-fill theme-icon-light"></i>
+                    <i class="bi bi-moon-stars-fill theme-icon-dark"></i>
+                </button>
+                <div class="auth-split__mobile-brand d-lg-none">
+                    <span class="brand-icon"><i class="bi bi-cup-hot-fill"></i></span>
+                    <strong>Splendid Catering</strong>
+                </div>
+                <div class="auth-split__mobile-visual d-lg-none">
+                    <img src="' . e($heroImage) . '" alt="" loading="eager">
+                </div>
+                <div class="auth-form-wrap">
+                    <span class="section-label">Account</span>
+                    <h1 class="auth-form-wrap__title">' . e($title) . '</h1>
+                    <p class="auth-form-wrap__subtitle text-muted">' . e($subtitle) . '</p>
+                    ' . $formHtml . '
+                    <p class="auth-form-wrap__switch text-center mt-4 mb-0">
+                        ' . e($switchLabel) . '
+                        <a href="' . e($switchUrl) . '" class="auth-form-wrap__switch-link">' . e($switchText) . ' <i class="bi bi-arrow-right"></i></a>
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>';
+}
+
+function renderContactInfoCard(?array $location = null, bool $compact = false): string
+{
+    $loc = $location ?? getBusinessLocation();
+    $compactClass = $compact ? ' contact-info-card--compact' : '';
+
+    $items = [
+        ['icon' => 'geo-alt-fill', 'label' => 'Address', 'value' => $loc['address']],
+        ['icon' => 'telephone-fill', 'label' => 'Phone', 'value' => $loc['phone'], 'href' => 'tel:' . preg_replace('/\s+/', '', $loc['phone'])],
+        ['icon' => 'envelope-fill', 'label' => 'Email', 'value' => $loc['email'], 'href' => 'mailto:' . $loc['email']],
+        ['icon' => 'clock-fill', 'label' => 'Hours', 'value' => $loc['hours']],
+    ];
+
+    $html = '<div class="contact-info-card' . $compactClass . '">';
+    foreach ($items as $item) {
+        $valueHtml = !empty($item['href'])
+            ? '<a href="' . e($item['href']) . '">' . e($item['value']) . '</a>'
+            : e($item['value']);
+        $html .= '<div class="contact-info-card__item" data-reveal>
+            <span class="contact-info-card__icon"><i class="bi bi-' . e($item['icon']) . '"></i></span>
+            <div>
+                <span class="contact-info-card__label">' . e($item['label']) . '</span>
+                <span class="contact-info-card__value">' . $valueHtml . '</span>
+            </div>
+        </div>';
+    }
+    $html .= '</div>';
+
+    return $html;
+}
+
+function renderDirectionsButton(?array $location = null, string $class = 'btn btn-gold btn-lg btn-interactive'): string
+{
+    $loc = $location ?? getBusinessLocation();
+
+    return '<a href="' . e(businessDirectionsUrl($loc)) . '" class="' . e($class) . ' location-directions-btn" target="_blank" rel="noopener noreferrer">
+        <i class="bi bi-signpost-split-fill"></i> Get Directions
+    </a>';
+}
+
+function renderBusinessMap(string $mapId, string $variant = 'default', int $zoom = 15): string
+{
+    return renderBusinessLocationMap($mapId, $variant, $zoom);
+}
+
+function renderBusinessLocationMap(string $mapId, string $variant = 'default', int $zoom = 15): string
+{
+    $loc = getBusinessLocation();
+    $locationJson = htmlspecialchars(json_encode($loc, JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_QUOT | JSON_HEX_AMP), ENT_QUOTES, 'UTF-8');
+
+    return '<div class="location-map-block location-map-block--' . e($variant) . '" data-reveal>
+        <div class="location-map-wrap" data-business-map data-map-id="' . e($mapId) . '" data-location="' . $locationJson . '" data-zoom="' . $zoom . '">
+            <div id="' . e($mapId) . '" class="location-map" role="region" aria-label="Interactive map showing ' . e($loc['name']) . ' location"></div>
+            <div class="location-map__loading" aria-hidden="true"><span class="spinner-border spinner-border-sm"></span> Loading map…</div>
+        </div>
+    </div>';
+}
+
+function renderAboutLocationSection(PDO $pdo, ?string $imageUrl = null): string
+{
+    $loc = getBusinessLocation();
+    $blurb = $pdo->query("SELECT content FROM website_content WHERE page_key = 'contact'")->fetchColumn()
+        ?: 'Visit our kitchen and event planning team in Accra.';
+    $image = $imageUrl ?: getImageUrl(null);
+
+    return '<section class="section section--warm location-about" id="our-location">
+        <div class="container">
+            <div class="row g-5 align-items-center">
+                <div class="col-lg-5">
+                    <div class="location-about__copy" data-reveal>
+                        <span class="section-label">Find Us</span>
+                        <h2 class="section-title section-title--editorial">Our Location</h2>
+                        <p class="lead-text">' . e($blurb) . '</p>
+                        <p class="text-muted mb-4"><i class="bi bi-geo-alt-fill text-gold me-2"></i>' . e($loc['address']) . '</p>
+                        <div class="location-about__image image-frame mb-4" data-reveal data-reveal-delay="80">
+                            <img src="' . e($image) . '" alt="Splendid Catering location" loading="lazy">
+                        </div>
+                        ' . renderDirectionsButton($loc, 'btn btn-gold btn-interactive btn-arrow') . '
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    ' . renderBusinessMap('aboutBusinessMap', 'about', 15) . '
+                </div>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderContactLocationSection(): string
+{
+    return '<section class="section location-contact" id="find-us">
+        <div class="container">
+            ' . renderSectionHeader('Find Us', 'Contact Information & Directions', 'Have questions or want to book catering? Reach us directly or visit our location.') . '
+            <div class="row g-5 align-items-stretch">
+                <div class="col-lg-5 d-flex flex-column">
+                    ' . renderContactInfoCard() . '
+                    <div class="mt-4" data-reveal>
+                        ' . renderDirectionsButton(null, 'btn btn-gold btn-lg btn-interactive w-100') . '
+                    </div>
+                </div>
+                <div class="col-lg-7">
+                    ' . renderBusinessMap('contactBusinessMap', 'contact', 16) . '
+                </div>
+            </div>
+        </div>
+    </section>';
+}
+
+function renderLeadershipCard(array $member, int $index = 0, bool $featured = false): string
+{
+    $delayBase = $index * 90;
+    $featuredClass = $featured ? ' leadership-card--featured' : '';
+    $socialHtml = '';
+
+    if (!empty($member['linkedin'])) {
+        $socialHtml .= '<a href="' . e($member['linkedin']) . '" class="leadership-card__social" target="_blank" rel="noopener noreferrer" aria-label="LinkedIn profile"><i class="bi bi-linkedin"></i></a>';
+    }
+    if (!empty($member['instagram'])) {
+        $socialHtml .= '<a href="' . e($member['instagram']) . '" class="leadership-card__social" target="_blank" rel="noopener noreferrer" aria-label="Instagram profile"><i class="bi bi-instagram"></i></a>';
+    }
+
+    $quoteHtml = !empty($member['quote'])
+        ? '<blockquote class="leadership-card__quote" data-reveal data-reveal-delay="' . ($delayBase + 200) . '">&ldquo;' . e($member['quote']) . '&rdquo;</blockquote>'
+        : '';
+
+    $socialBlock = $socialHtml !== ''
+        ? '<div class="leadership-card__socials" data-reveal data-reveal-delay="' . ($delayBase + 280) . '">' . $socialHtml . '</div>'
+        : '';
+
+    return '<article class="leadership-card' . $featuredClass . '">
+        <div class="leadership-card__media" data-reveal data-reveal-delay="' . ($delayBase + 60) . '">
+            <img src="' . e($member['image']) . '" alt="' . e($member['name']) . '" loading="lazy">
+            <div class="leadership-card__media-overlay"></div>
+            ' . $socialBlock . '
+        </div>
+        <div class="leadership-card__body">
+            <h3 class="leadership-card__name" data-reveal data-reveal-delay="' . ($delayBase + 120) . '">' . e($member['name']) . '</h3>
+            <p class="leadership-card__title" data-reveal data-reveal-delay="' . ($delayBase + 160) . '">' . e($member['title']) . '</p>
+            ' . $quoteHtml . '
+            <p class="leadership-card__bio" data-reveal data-reveal-delay="' . ($delayBase + 240) . '">' . e($member['bio']) . '</p>
+        </div>
+    </article>';
+}
+
+function renderLeadershipSection(PDO $pdo, ?string $foodImage = null): string
+{
+    $team = getLeadershipTeam($pdo);
+    $heading = renderSectionHeader(
+        'Our Leadership',
+        'Meet The People Behind The Brand',
+        'The professionals guiding our culinary vision, operations, and guest experience'
+    );
+
+    if (empty($team)) {
+        return '<section class="section section-alt leadership-section" id="leadership">
+            <div class="container">
+                ' . $heading . '
+                <div class="leadership-placeholder" data-reveal>
+                    <div class="leadership-placeholder__visual">
+                        <div class="leadership-placeholder__icon"><i class="bi bi-person-badge"></i></div>
+                    </div>
+                    <div class="leadership-placeholder__content">
+                        <h3>Meet The Team Behind Splendid Catering</h3>
+                        <p class="text-muted mb-3">Founder and leadership profiles will appear here with professional portraits, titles, and biographies as soon as they are published.</p>
+                        <div class="leadership-placeholder__fields">
+                            <span>Portrait</span><span>Name</span><span>Title</span><span>Story</span>
+                        </div>
+                        <a href="' . e(url('contact')) . '" class="btn btn-outline-gold btn-interactive mt-3">Contact Our Team</a>
+                    </div>
+                </div>
+            </div>
+        </section>';
+    }
+
+    $count = count($team);
+    $featuredIndex = 0;
+    foreach ($team as $i => $member) {
+        if (!empty($member['featured'])) {
+            $featuredIndex = $i;
+            break;
+        }
+    }
+
+    if ($count === 1 || ($count > 1 && !empty($team[$featuredIndex]['featured']))) {
+        $member = $team[$featuredIndex];
+        $others = array_values(array_filter($team, static fn($m, $i) => $i !== $featuredIndex, ARRAY_FILTER_USE_BOTH));
+        $othersHtml = '';
+        if (!empty($others)) {
+            $othersHtml = '<div class="leadership-team-grid mt-5"><div class="row g-4">';
+            foreach ($others as $i => $other) {
+                $othersHtml .= '<div class="col-md-6 col-lg-4">' . renderLeadershipCard($other, $i + 1) . '</div>';
+            }
+            $othersHtml .= '</div></div>';
+        }
+
+        $foodSide = $foodImage && empty($others)
+            ? '<div class="col-lg-5" data-reveal data-reveal-delay="120">
+                <div class="leadership-food-frame image-frame">
+                    <img src="' . e(resolveMediaUrl($foodImage)) . '" alt="Catering excellence" loading="lazy">
+                </div>
+            </div>'
+            : '';
+
+        return '<section class="section section-alt leadership-section" id="leadership">
+            <div class="container">
+                ' . $heading . '
+                <div class="row g-5 align-items-start">
+                    <div class="' . ($foodSide ? 'col-lg-7' : 'col-12') . '">
+                        ' . renderLeadershipCard($member, 0, true) . '
+                    </div>
+                    ' . $foodSide . '
+                </div>
+                ' . $othersHtml . '
+            </div>
+        </section>';
+    }
+
+    $cards = '';
+    foreach ($team as $i => $member) {
+        $cards .= '<div class="col-md-6 col-lg-4">' . renderLeadershipCard($member, $i) . '</div>';
+    }
+
+    return '<section class="section section-alt leadership-section" id="leadership">
+        <div class="container">
+            ' . $heading . '
+            <div class="row g-4">' . $cards . '</div>
+        </div>
+    </section>';
+}
+
+function renderAboutStatsStrip(PDO $pdo): string
+{
+    $stats = getPublicSiteStats($pdo);
+    $ratingDisplay = $stats['avg_rating'] > 0 ? number_format($stats['avg_rating'], 1) . '★' : '—';
+
+    return '<div class="about-editorial__stats stagger-grid">
+        <div class="stat-card-premium" data-reveal>
+            <div class="stat-value" data-counter="' . (int) $stats['events_served'] . '" data-counter-suffix="+">0</div>
+            <div class="stat-label">Events Served</div>
+        </div>
+        <div class="stat-card-premium" data-reveal data-reveal-delay="80">
+            <div class="stat-value" data-counter="' . (int) $stats['menu_items'] . '" data-counter-suffix="+">0</div>
+            <div class="stat-label">Menu Items</div>
+        </div>
+        <div class="stat-card-premium" data-reveal data-reveal-delay="160">
+            <div class="stat-value" data-counter="' . (int) $stats['service_types'] . '" data-counter-suffix="+">0</div>
+            <div class="stat-label">Service Types</div>
+        </div>
+        <div class="stat-card-premium" data-reveal data-reveal-delay="240">
+            <div class="stat-value">' . e($ratingDisplay) . '</div>
+            <div class="stat-label">Client Rating</div>
+        </div>
+    </div>';
+}
+
+function renderAboutFoodSpotlight(string $imageUrl, string $alt = 'Culinary craftsmanship'): string
+{
+    return '<section class="section about-food-spotlight">
+        <div class="container">
+            <div class="about-food-spotlight__grid" data-reveal>
+                <div class="about-food-spotlight__copy">
+                    <span class="section-label">Our Craft</span>
+                    <h2 class="section-title section-title--editorial">The Food Behind Every Celebration</h2>
+                    <p class="lead-text mb-0">From intimate gatherings to grand events, every dish reflects the care, creativity, and standards our kitchen is known for.</p>
+                </div>
+                <div class="about-food-spotlight__media image-frame">
+                    <img src="' . e($imageUrl) . '" alt="' . e($alt) . '" loading="lazy">
+                </div>
+            </div>
+        </div>
+    </section>';
+}
+
+function getGalleryEffectClass(int $index, array $item, ?array $nextItem = null): string
+{
+    $effects = [
+        'gallery-fx--slow-zoom',
+        '',
+        'gallery-fx--float',
+        'gallery-fx--hover',
+        'gallery-fx--reveal',
+        'gallery-fx--ken-burns',
+        '',
+        'gallery-fx--hover-reveal',
+    ];
+    $class = $effects[$index % count($effects)];
+
+    if (!empty($item['is_featured']) && $nextItem && !empty($nextItem['image_url'])) {
+        $class .= ' gallery-fx--crossfade';
+    }
+
+    return trim($class);
+}
+
+function renderGalleryGrid(array $gallery): string
+{
+    if (empty($gallery)) {
+        return '';
+    }
+
+    $html = '<div class="gallery-grid gallery-grid--compact stagger-grid">';
+    foreach ($gallery as $i => $g) {
+        $next = $gallery[$i + 1] ?? null;
+        $fxClass = getGalleryEffectClass($i, $g, $next);
+        $revealAttr = str_contains($fxClass, 'gallery-fx--reveal') ? ' data-gallery-reveal' : '';
+        $crossfadeSecondary = (!empty($g['is_featured']) && $next && !empty($next['image_url']))
+            ? '<img src="' . e($next['image_url']) . '" alt="" class="gallery-card-premium__img gallery-card-premium__img--alt" loading="lazy" aria-hidden="true">'
+            : '';
+
+        $html .= '<div class="gallery-item ' . e($fxClass) . '"
+                 data-reveal data-reveal-delay="' . (($i % 4) * 60) . '"
+                 data-gallery-category="' . e($g['category']) . '"
+                 data-cursor-label="View"
                  data-lightbox
                  data-src="' . e($g['image_url']) . '"
                  data-title="' . e($g['title']) . '"
-                 data-category="' . e($g['category']) . '"
-                 data-cursor-label="View">
+                 data-category="' . e($g['category']) . '"' . $revealAttr . '>
             <article class="gallery-card-premium">
                 <div class="gallery-card-premium__media">
-                    <img src="' . e($g['image_url']) . '" alt="' . e($g['title']) . '" loading="lazy">
+                    <img src="' . e($g['image_url']) . '" alt="' . e($g['title']) . '" class="gallery-card-premium__img gallery-card-premium__img--primary" loading="lazy">
+                    ' . $crossfadeSecondary . '
                 </div>
                 <div class="gallery-card-premium__overlay">
                     <h6>' . e($g['title']) . '</h6>
@@ -675,15 +1273,7 @@ function renderHomeGalleryPreview(PDO $pdo, int $limit = 4): string
             </article>
         </div>';
     }
-    $grid .= '</div>';
+    $html .= '</div>';
 
-    return '<section class="section section-alt section--gallery-preview">
-        <div class="container">
-            ' . $header . '
-            ' . $grid . '
-            <div class="text-center mt-4" data-reveal>
-                <a href="' . e(url('gallery')) . '" class="btn btn-outline-gold btn-interactive btn-arrow">View Full Gallery <i class="bi bi-arrow-right"></i></a>
-            </div>
-        </div>
-    </section>';
+    return $html;
 }

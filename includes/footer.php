@@ -1,5 +1,20 @@
-<?php if (!$isDashboard ?? false): ?>
+<?php
+$isAuthPage = $isAuthPage ?? str_contains($bodyClass ?? '', 'auth-page');
+if (!$isDashboard ?? false):
+?>
 </main>
+
+<?php if ($isAuthPage): ?>
+<footer class="auth-footer">
+    <div class="auth-footer__inner">
+        <a href="<?= url() ?>" class="auth-footer__brand">
+            <span class="brand-icon"><i class="bi bi-cup-hot-fill"></i></span>
+            <span>Splendid Catering</span>
+        </a>
+        <p class="auth-footer__copy">&copy; <?= date('Y') ?> Splendid Catering</p>
+    </div>
+</footer>
+<?php else: ?>
 
 <footer class="site-footer site-footer-premium footer-reveal">
 
@@ -97,13 +112,14 @@
 
                 <ul class="footer-contact">
 
-                    <li><i class="bi bi-geo-alt"></i> 14 Independence Avenue, Accra, Ghana</li>
+                    <?php $business = getBusinessLocation(); ?>
+                    <li><i class="bi bi-geo-alt"></i> <?= e($business['address']) ?></li>
 
-                    <li><i class="bi bi-telephone"></i> <?= e($config['support_phone']) ?></li>
+                    <li><i class="bi bi-telephone"></i> <?= e($business['phone']) ?></li>
 
-                    <li><i class="bi bi-envelope"></i> <?= e($config['support_email']) ?></li>
+                    <li><i class="bi bi-envelope"></i> <?= e($business['email']) ?></li>
 
-                    <li><i class="bi bi-clock"></i> Mon–Sat: 8AM – 8PM</li>
+                    <li><i class="bi bi-clock"></i> <?= e($business['hours']) ?></li>
 
                 </ul>
 
@@ -191,6 +207,7 @@
 
 </div>
 
+<?php endif; ?>
 <?php endif; ?>
 
 

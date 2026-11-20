@@ -8,16 +8,19 @@
    ========================================================================== */
 
 [data-theme="light"] {
+    --brand-charcoal: #171717;
+    --brand-cream: #F8F5EF;
+    --brand-gold: #C6A15B;
     --bg-primary: #ffffff;
-    --bg-secondary: #f4f6f9;
+    --bg-secondary: #F8F5EF;
     --bg-card: #ffffff;
     --bg-sidebar: #1a2332;
     --text-primary: #1a1f2e;
     --text-secondary: #4a5568;
     --text-muted: #718096;
     --border-color: #e2e8f0;
-    --accent-color: #C9A962;
-    --accent-hover: #b8964f;
+    --accent-color: #C6A15B;
+    --accent-hover: #b08d4f;
     --accent-muted: rgba(201, 169, 98, 0.12);
     --success-color: #22c55e;
     --success-muted: rgba(34, 197, 94, 0.12);
@@ -1214,7 +1217,7 @@ code {
     }
 
     .dash-stats-secondary {
-        grid-template-columns: repeat(3, minmax(0, 1fr));
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
     .dash-analytics-grid > .panel-card:not(.dash-panel-wide) {

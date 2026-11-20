@@ -1,12 +1,19 @@
 :root {
+    /* Splendid Catering brand palette */
+    --brand-charcoal: #171717;
+    --brand-cream: #F8F5EF;
+    --brand-gold: #C6A15B;
+    --brand-white: #FFFFFF;
+    --brand-grey: #6B6B6B;
+
     /* Legacy aliases (map to theme tokens) */
-    --gold: #C9A962;
+    --gold: var(--brand-gold);
     --gold-light: #E8D5A3;
     --gold-dark: #9A7B3C;
-    --charcoal: #1A1A2E;
-    --charcoal-light: #2D2D44;
-    --cream: #FAF7F2;
-    --cream-dark: #F0EBE3;
+    --charcoal: var(--brand-charcoal);
+    --charcoal-light: #2a2a2a;
+    --cream: var(--brand-cream);
+    --cream-dark: #EDE8DF;
     --text: #1a1f2e;
     --text-light: #718096;
     --success: #22c55e;
@@ -19,7 +26,7 @@
 
     /* Light theme fallbacks (before JS sets data-theme) */
     --bg-primary: #ffffff;
-    --bg-secondary: #f4f6f9;
+    --bg-secondary: var(--brand-cream);
     --bg-card: #ffffff;
     --text-primary: #1a1f2e;
     --text-secondary: #4a5568;
@@ -27,7 +34,7 @@
     --border-color: #e2e8f0;
     --input-bg: #ffffff;
     --input-border: #e2e8f0;
-    --accent-color: #C9A962;
+    --accent-color: var(--brand-gold);
     --accent-hover: #b8964f;
     --accent-muted: rgba(201, 169, 98, 0.12);
     --shadow-sm: 0 1px 3px rgba(15, 20, 25, 0.06);
@@ -68,7 +75,7 @@ a:hover {
 
 /* Navigation */
 #mainNav {
-    background: rgba(26, 26, 46, 0.95);
+    background: rgba(23, 23, 23, 0.95);
     backdrop-filter: blur(20px);
     padding: 0.75rem 0;
     transition: var(--transition);

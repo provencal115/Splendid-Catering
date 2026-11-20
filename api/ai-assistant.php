@@ -12,7 +12,7 @@ $responses = [
     'available' => 'Check our live availability calendar on the booking page. We typically accept up to 3 events per day. Weekends fill up fast — book early!',
     'halal' => 'Yes! Many of our dishes are halal-certified. Use the dietary filters on our Menu page or specify requirements when booking.',
     'vegan' => 'We have excellent vegan options including Mushroom Risotto, Quinoa Power Bowl, Tropical Smoothies, and Bofrot with Honey. Our AI menu recommender can suggest more!',
-    'contact' => 'Reach us at ' . $config['support_phone'] . ' or ' . $config['support_email'] . '. We are available Mon-Sat, 8AM-8PM.',
+    'contact' => 'Reach us at ' . getBusinessLocation()['phone'] . ' or ' . getBusinessLocation()['email'] . '. We are available ' . getBusinessLocation()['hours'] . '.',
     'hello' => 'Hello! Welcome to Splendid Caterery! I can help with packages, menus, pricing, availability, and booking. What would you like to know?',
     'hi' => 'Hi there! 👋 How can I help you plan your event today?',
 ];

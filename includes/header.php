@@ -3,6 +3,7 @@ $pageTitle = $pageTitle ?? $config['name'];
 $pageDescription = $pageDescription ?? 'Premium catering and event management in Ghana';
 $bodyClass = $bodyClass ?? '';
 $isDashboard = $isDashboard ?? false;
+$isAuthPage = str_contains($bodyClass, 'auth-page');
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -28,8 +29,8 @@ $isDashboard = $isDashboard ?? false;
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
     <?php endif; ?>
 </head>
-<body class="<?= e($bodyClass) ?> <?= $isDashboard ? 'dashboard-body' : 'public-site' ?>">
-<?php if (!$isDashboard): ?>
+<body class="<?= e($bodyClass) ?> <?= $isDashboard ? 'dashboard-body' : ($isAuthPage ? 'auth-page-body' : 'public-site') ?>">
+<?php if (!$isDashboard && !$isAuthPage): ?>
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top" id="mainNav">
     <div class="container">
         <a class="navbar-brand d-flex align-items-center gap-2" href="<?= url() ?>">
@@ -67,6 +68,8 @@ $isDashboard = $isDashboard ?? false;
 <div id="pageTransition" class="page-transition" aria-hidden="true"></div>
 <div id="customCursor" class="custom-cursor" aria-hidden="true"><span class="custom-cursor__label"></span></div>
 <main class="public-main">
+<?php elseif ($isAuthPage): ?>
+<main class="auth-main">
 <?php endif; ?>
 
 <?php $flash = getFlash(); if ($flash): ?>
